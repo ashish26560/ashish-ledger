@@ -9,6 +9,8 @@ import {
   uniqueMonths,
   monthLabel,
   formatINR,
+  compareDateTime,
+  formatDateTime,
 } from "@/lib/data";
 import StatCard from "@/components/StatCard";
 import MonthlyTrendChart from "@/components/MonthlyTrendChart";
@@ -29,18 +31,16 @@ export default function Dashboard() {
   const prevNet = prevMonthIndex >= 0 ? monthlyNet[months[prevMonthIndex]] : null;
   const delta = prevNet != null ? currentNet - prevNet : null;
 
-  const categoryTotals = useMemo(
-    () => computeCategoryTotals(transactions, selectedMonth),
-    [transactions, selectedMonth]
-  );
+  const categoryTotals = useMemo(() => computeCategoryTotals(transactions, selectedMonth), [transactions, selectedMonth]);
   const sortedCategories = Object.entries(categoryTotals).sort((a, b) => b[1] - a[1]);
 
   const recent = useMemo(
     () =>
-      [...transactions]
-        .sort((a, b) => (a.Date < b.Date ? 1 : -1))
+      transactions
+        .filter((t) => t.Month === selectedMonth)
+        .sort((a, b) => compareDateTime(b, a))
         .slice(0, 8),
-    [transactions]
+    [transactions, selectedMonth]
   );
 
   return (
@@ -61,9 +61,7 @@ export default function Dashboard() {
           value={formatINR(currentNet)}
           accent="#A8452F"
           sub={
-            delta != null
-              ? `${delta >= 0 ? "+" : ""}${formatINR(delta)} vs ${monthLabel(months[prevMonthIndex])}`
-              : undefined
+            delta != null ? `${delta >= 0 ? "+" : ""}${formatINR(delta)} vs ${monthLabel(months[prevMonthIndex])}` : undefined
           }
         />
         <StatCard
@@ -104,26 +102,27 @@ export default function Dashboard() {
         </div>
 
         <div>
-          <h2 className="font-display text-xl mb-4">Recent activity</h2>
+          <h2 className="font-display text-xl mb-4">Recent activity — {monthLabel(selectedMonth || "")}</h2>
           <div className="border border-line rounded bg-paper divide-y divide-line">
             {recent.map((tx) => (
               <div key={tx.id} className="px-4 py-3 flex justify-between items-center">
                 <div className="min-w-0 pr-3">
-                  <p className="text-sm truncate">{tx.Description}</p>
+                  <p className="text-sm truncate" title={tx.FullDescription || tx.Description}>
+                    {tx.Description}
+                  </p>
                   <p className="text-xs text-muted">
-                    {tx.Date} · {tx.Category}
+                    {formatDateTime(tx)} · {tx.Category}
                   </p>
                 </div>
                 <span
-                  className={`font-mono tabular text-sm shrink-0 ${
-                    tx.Type === "Credit" ? "text-forestDeep" : "text-rust"
-                  }`}
+                  className={`font-mono tabular text-sm shrink-0 ${tx.Type === "Credit" ? "text-forestDeep" : "text-rust"}`}
                 >
                   {tx.Type === "Credit" ? "+" : "-"}
                   {formatINR(tx.Amount)}
                 </span>
               </div>
             ))}
+            {recent.length === 0 && <p className="px-4 py-8 text-center text-sm text-muted">No activity this month.</p>}
           </div>
         </div>
       </section>

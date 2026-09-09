@@ -2,8 +2,14 @@
 
 import { useLedger } from "@/lib/DataContext";
 import { formatINR, CATEGORY_ORDER } from "@/lib/data";
+import type { Category } from "@/lib/categories";
+import type { Transaction } from "@/lib/types";
 
-export default function TransactionsTable({ rows }) {
+interface TransactionsTableProps {
+  rows: Transaction[];
+}
+
+export default function TransactionsTable({ rows }: TransactionsTableProps) {
   const { updateTransaction, deleteTransaction } = useLedger();
 
   return (
@@ -25,15 +31,16 @@ export default function TransactionsTable({ rows }) {
               <tr key={tx.id} className="hover:bg-paperDim/60">
                 <td className="px-4 py-2 font-mono tabular text-xs text-muted whitespace-nowrap">
                   {tx.Date}
+                  {tx.Time && <span className="block text-[10px] opacity-70">{tx.Time}</span>}
                 </td>
                 <td className="px-4 py-2 text-xs text-muted whitespace-nowrap">{tx.Account}</td>
-                <td className="px-4 py-2 max-w-[260px] truncate" title={tx.Description}>
+                <td className="px-4 py-2 max-w-[260px] truncate" title={tx.FullDescription || tx.Description}>
                   {tx.Description}
                 </td>
                 <td className="px-4 py-2">
                   <select
                     value={tx.Category}
-                    onChange={(e) => updateTransaction(tx.id, { Category: e.target.value })}
+                    onChange={(e) => updateTransaction(tx.id, { Category: e.target.value as Category })}
                     className="bg-transparent border border-transparent hover:border-line rounded text-xs py-1 px-1 -ml-1"
                   >
                     {CATEGORY_ORDER.map((c) => (

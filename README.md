@@ -2,21 +2,24 @@
 
 A personal expense tracker for your HDFC and SBI accounts — passbook-style
 dashboard, filterable transaction ledger, recurring obligations breakdown,
-and account balances. Built with Next.js 14 + Tailwind + Recharts.
-
-Your March–September 2026 transaction history is pre-loaded as starting
-data. Everything you add afterwards (new expenses, category edits, balance
-updates) is saved in your browser's local storage — nothing is sent to a
-server, so it stays private to your device/browser.
+and account balances. Built with Next.js 14 + TypeScript + Tailwind +
+Recharts, backed by a Postgres database (Neon) so your data persists across
+devices and deployments instead of living in one browser's local storage.
 
 ## Run it locally
 
 ```bash
 npm install
+vercel env pull .env.development.local   # pulls DATABASE_URL from your Vercel project
 npm run dev
 ```
 
 Open http://localhost:3000
+
+You need a database before the app will actually load any data — see
+**Database setup** below if you haven't provisioned one yet. Without
+`DATABASE_URL` set, the app still builds and runs, but every page shows a
+clear "database not configured" error instead of your ledger.
 
 ## Deploy to Vercel
 
@@ -44,6 +47,70 @@ vercel login
 vercel --prod
 ```
 
+Do the **Database setup** and **Password-protect your deployment** steps below
+either before or right after your first deploy — the app itself doesn't need
+either to build, but you want both in place before you start relying on it
+with real data at a public URL.
+
+## Database setup
+
+The app used to keep everything in the browser's localStorage. Now that it's
+a shared Postgres database, anyone with the deploy URL could read or edit
+your data unless you also lock it down (see the next section) — but first,
+here's how to get the database itself running. This is a one-time setup.
+
+1. **Add the Neon integration to your Vercel project.**
+   In your Vercel project → **Storage** tab → **Create Database** → choose
+   **Neon** (Postgres) → follow the prompts, picking the free plan. Vercel
+   automatically adds a `DATABASE_URL` environment variable to your project
+   for you — no manual copy-pasting of connection strings needed.
+
+2. **Pull that env var down locally** (needed for the next two steps):
+   ```bash
+   npm install -g vercel   # if you don't have it already
+   vercel link             # first time only, links this folder to your Vercel project
+   vercel env pull .env.development.local
+   ```
+
+3. **Create the tables.** Run `db/schema.sql` against your new database once.
+   Easiest way: open your database in the Neon console → **SQL Editor** →
+   paste the contents of `db/schema.sql` → run it. (Or, if you have `psql`
+   installed: `psql "$DATABASE_URL" -f db/schema.sql`.)
+
+4. **Load your existing transaction history in.** This repo's pre-loaded
+   March–September 2026 history and starting balances get migrated across
+   with a one-time script:
+   ```bash
+   npm run db:seed
+   ```
+   It's safe to run more than once — it refuses to re-insert transactions if
+   the table already has rows (balances are always kept up to date though).
+
+5. **Redeploy** (if you'd already deployed before adding the database) so the
+   live site picks up the new `DATABASE_URL`:
+   ```bash
+   vercel --prod
+   ```
+   Or just push a new commit — Vercel redeploys automatically on push.
+
+From here on, every device that opens your deployed URL reads and writes the
+same shared database — no more per-browser copies to keep in sync.
+
+## Password-protect your deployment
+
+Because the database is shared, put a password on the site before anyone
+else could stumble onto your deploy URL:
+
+1. In Vercel → your project → **Settings → Environment Variables**, add
+   `SITE_PASSWORD` with a password of your choosing.
+2. Redeploy. Visiting the site now prompts for a username (anything works)
+   and that password, via the browser's built-in login prompt.
+
+This is one shared password for the whole app, not real per-user accounts —
+fine for personal use, not something to reuse for anyone else's data. Leaving
+`SITE_PASSWORD` unset leaves the app open to anyone with the URL (useful for
+local development, not for a real deployment).
+
 ## Pages
 
 - **Dashboard** — total balance, monthly spend chart, category breakdown, recent activity
@@ -51,9 +118,69 @@ vercel --prod
 - **Recurring** — EMIs, subscriptions, and insurance premiums broken out separately
 - **Accounts** — per-account balances and totals; update balances as new statements come in
 
+## Uploading a statement
+
+"Upload statement" (on the Transactions and Accounts pages) lets you import a fresh
+HDFC/SBI net-banking statement export (.xls/.xlsx) instead of logging entries by hand:
+
+- Parses the statement's transaction table (works with both real XLS workbooks and the
+  HTML-table-as-.xls files banks often export).
+- Categorizes each transaction the same way the rest of the ledger is categorized —
+  it learns from payees you've already categorized, applies rules for recognizable
+  transaction types (salary, EMI, credit card autopay, interest, cash withdrawal) and
+  common merchants, and leaves anything genuinely new for you to review before import
+  (flagged rows are highlighted).
+- Skips transactions already in your ledger, so re-uploading an overlapping statement
+  is safe.
+- Optionally updates the account's balance to the statement's closing balance.
+
+The file is parsed in your browser; only the extracted transactions (not the original
+file) are sent to your database when you confirm the import.
+
 ## Notes
 
-- Data lives in your browser only (localStorage) — clearing browser data will reset it.
-  To back up, you can export by opening dev tools console and running:
-  `copy(localStorage.getItem('ledger:transactions:v1'))`
-- To wipe and reload the original seed data, clear your browser's localStorage for this site.
+- Data lives in your Neon Postgres database now, not the browser — it's the same data
+  no matter which device or browser you open the app from.
+- Everything's on Neon's free tier unless you choose otherwise; keep an eye on usage in
+  the Neon console if your transaction volume grows a lot.
+- `npm run db:seed` is meant to run once, right after creating the tables. Running it
+  again is harmless (it won't duplicate your transaction history) but won't do anything
+  further either.
+
+## Development
+
+The whole codebase is TypeScript in strict mode, and every API route validates its
+request body at runtime with [zod](https://zod.dev) — a malformed or unexpected request
+gets a clear 400 response instead of hitting the database. A few commands worth knowing:
+
+```bash
+npm run typecheck   # tsc --noEmit — catches type errors without producing a build
+npm run lint        # ESLint (Next's config + @typescript-eslint)
+npm test            # runs the test suite once (Vitest)
+npm run test:watch  # re-runs tests as you edit
+```
+
+Tests live next to the code they cover (`lib/**/*.test.ts`) and currently focus on the
+two riskiest, hardest-to-eyeball-correct pieces of logic: statement parsing
+(`lib/statementParser/parse.test.ts` — HDFC vs. SBI column formats, UPI narration
+parsing, and a regression test for a bank-misdetection bug) and categorization
+(`lib/categorize.test.ts` — structural/merchant rules and the direction-aware
+learned-category map, with a regression test for a payee-direction bug). `lib/data.ts`
+has a lighter set of sanity-check tests. There's no UI/component test coverage yet —
+worth adding if you keep extending this.
+
+A few structural notes if you're navigating the code for the first time:
+
+- `lib/types.ts` and `lib/categories.ts` are the single source of truth for the shapes
+  and category list everything else builds on — the client and the API routes share
+  these types, so a mismatch between what the UI sends and what a route expects is a
+  compile error, not a runtime surprise.
+- `lib/schemas.ts` holds the zod schemas that actually gate what reaches the database;
+  `lib/api-response.ts` is the small shared helper every route uses to parse+validate a
+  body and to return errors in one consistent shape.
+- `lib/api-client.ts` is the client-side mirror of that — every fetch call to this app's
+  own API goes through it, so `lib/DataContext.tsx` only has to decide *what* to update
+  optimistically, not how to parse a response or format an error.
+- `lib/statementParser/` is split into `extract.ts` (the only part that touches the
+  browser — File/DOMParser/SheetJS) and `parse.ts` (pure row-processing logic, which is
+  what the tests exercise directly).

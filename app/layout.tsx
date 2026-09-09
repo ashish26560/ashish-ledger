@@ -1,4 +1,6 @@
 import { Fraunces, IBM_Plex_Sans, IBM_Plex_Mono } from "next/font/google";
+import type { Metadata } from "next";
+import type { ReactNode } from "react";
 import "./globals.css";
 import Sidebar from "@/components/Sidebar";
 import { DataProvider } from "@/lib/DataContext";
@@ -25,12 +27,12 @@ const plexMono = IBM_Plex_Mono({
   display: "swap",
 });
 
-export const metadata = {
+export const metadata: Metadata = {
   title: "Ashish's Ledger",
   description: "Personal expense tracker across HDFC and SBI accounts",
 };
 
-export default function RootLayout({ children }) {
+export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en" className={`${fraunces.variable} ${plexSans.variable} ${plexMono.variable}`}>
       <body className="font-sans bg-paper text-ink min-h-screen">

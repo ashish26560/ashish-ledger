@@ -10,7 +10,7 @@ const NAV = [
   { href: "/transactions", label: "Transactions" },
   { href: "/recurring", label: "Recurring" },
   { href: "/accounts", label: "Accounts" },
-];
+] as const;
 
 export default function Sidebar() {
   const pathname = usePathname();
@@ -20,7 +20,7 @@ export default function Sidebar() {
   return (
     <aside className="w-[260px] shrink-0 border-r border-line bg-paperDim flex flex-col">
       <div className="px-6 pt-8 pb-6 ledger-rule-strong">
-        <p className="font-display italic text-lg text-ink leading-none">Ashish's</p>
+        <p className="font-display italic text-lg text-ink leading-none">Ashish&apos;s</p>
         <p className="font-display text-2xl text-ink leading-tight">Ledger</p>
       </div>
 
@@ -32,9 +32,7 @@ export default function Sidebar() {
               key={item.href}
               href={item.href}
               className={`block px-3 py-2 mb-1 text-sm rounded transition-colors ${
-                active
-                  ? "bg-ink text-paper"
-                  : "text-ink hover:bg-line/60"
+                active ? "bg-ink text-paper" : "text-ink hover:bg-line/60"
               }`}
             >
               {item.label}
@@ -55,9 +53,7 @@ export default function Sidebar() {
         </div>
         <div className="flex justify-between items-baseline pt-2 border-t border-ink">
           <span className="text-sm">Total</span>
-          <span className="font-mono tabular text-base font-medium text-forestDeep">
-            {formatINR(total)}
-          </span>
+          <span className="font-mono tabular text-base font-medium text-forestDeep">{formatINR(total)}</span>
         </div>
       </div>
     </aside>

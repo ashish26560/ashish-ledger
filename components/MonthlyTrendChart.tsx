@@ -1,17 +1,18 @@
 "use client";
 
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  Tooltip,
-  ResponsiveContainer,
-  CartesianGrid,
-} from "recharts";
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
 import { formatINR, monthLabel } from "@/lib/data";
 
-export default function MonthlyTrendChart({ data }) {
+interface MonthlyTrendPoint {
+  month: string;
+  net: number;
+}
+
+interface MonthlyTrendChartProps {
+  data: MonthlyTrendPoint[];
+}
+
+export default function MonthlyTrendChart({ data }: MonthlyTrendChartProps) {
   const chartData = data.map((d) => ({ ...d, label: monthLabel(d.month) }));
 
   return (
@@ -30,7 +31,7 @@ export default function MonthlyTrendChart({ data }) {
             axisLine={false}
             tickLine={false}
             width={70}
-            tickFormatter={(v) => `\u20B9${(v / 1000).toFixed(0)}k`}
+            tickFormatter={(v: number) => `₹${(v / 1000).toFixed(0)}k`}
           />
           <Tooltip
             cursor={{ fill: "#EBE9E2" }}
@@ -41,7 +42,7 @@ export default function MonthlyTrendChart({ data }) {
               fontFamily: "var(--font-plex-sans)",
               fontSize: 13,
             }}
-            formatter={(v) => [formatINR(v), "Net expense"]}
+            formatter={(v: number) => [formatINR(v), "Net expense"]}
           />
           <Bar dataKey="net" fill="#1F6F54" radius={[2, 2, 0, 0]} maxBarSize={48} />
         </BarChart>

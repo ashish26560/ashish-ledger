@@ -2,14 +2,22 @@
 
 import { useMemo, useState } from "react";
 import { useLedger } from "@/lib/DataContext";
-import { formatINR, EXCLUDED_FROM_EXPENSE } from "@/lib/data";
+import { formatINR } from "@/lib/data";
+import ImportStatementModal from "@/components/ImportStatementModal";
+
+interface AccountStats {
+  debit: number;
+  credit: number;
+  count: number;
+}
 
 export default function AccountsPage() {
   const { transactions, balances, updateBalance } = useLedger();
-  const [edits, setEdits] = useState({});
+  const [edits, setEdits] = useState<Record<string, string | undefined>>({});
+  const [importOpen, setImportOpen] = useState(false);
 
   const perAccount = useMemo(() => {
-    const map = {};
+    const map: Record<string, AccountStats> = {};
     for (const t of transactions) {
       if (!map[t.Account]) map[t.Account] = { debit: 0, credit: 0, count: 0 };
       map[t.Account].count += 1;
@@ -19,7 +27,7 @@ export default function AccountsPage() {
     return map;
   }, [transactions]);
 
-  function save(account) {
+  function save(account: string) {
     const val = edits[account];
     if (val == null || val === "") return;
     updateBalance(account, Number(val), new Date().toISOString().slice(0, 10));
@@ -28,17 +36,25 @@ export default function AccountsPage() {
 
   return (
     <div className="px-10 py-8 max-w-3xl">
-      <header className="mb-6">
-        <h1 className="font-display text-3xl">Accounts</h1>
-        <p className="text-sm text-muted mt-1">
-          Closing balances update automatically only when you tell them to — enter the latest
-          figure from your bank statement here.
-        </p>
+      <header className="mb-6 flex items-start justify-between gap-4">
+        <div>
+          <h1 className="font-display text-3xl">Accounts</h1>
+          <p className="text-sm text-muted mt-1">
+            Closing balances update automatically only when you tell them to — upload a statement
+            below, or enter the latest figure by hand.
+          </p>
+        </div>
+        <button
+          onClick={() => setImportOpen(true)}
+          className="border border-line rounded px-4 py-2 text-sm whitespace-nowrap hover:bg-paperDim/60 transition-colors"
+        >
+          Upload statement
+        </button>
       </header>
 
       <div className="space-y-6">
         {Object.entries(balances).map(([account, b]) => {
-          const stats = perAccount[account] || { debit: 0, credit: 0, count: 0 };
+          const stats: AccountStats = perAccount[account] || { debit: 0, credit: 0, count: 0 };
           return (
             <div key={account} className="border border-line rounded bg-paper p-5">
               <div className="flex items-baseline justify-between mb-4">
@@ -49,9 +65,7 @@ export default function AccountsPage() {
               <div className="grid grid-cols-3 gap-4 mb-4">
                 <div>
                   <p className="text-xs text-muted mb-1">Closing balance</p>
-                  <p className="font-mono tabular text-xl text-forestDeep">
-                    {formatINR(b.balance)}
-                  </p>
+                  <p className="font-mono tabular text-xl text-forestDeep">{formatINR(b.balance)}</p>
                 </div>
                 <div>
                   <p className="text-xs text-muted mb-1">Total debits</p>
@@ -83,6 +97,8 @@ export default function AccountsPage() {
           );
         })}
       </div>
+
+      <ImportStatementModal open={importOpen} onClose={() => setImportOpen(false)} />
     </div>
   );
 }

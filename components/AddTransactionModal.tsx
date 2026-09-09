@@ -1,48 +1,70 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type FormEvent } from "react";
 import { useLedger } from "@/lib/DataContext";
 import { CATEGORY_ORDER } from "@/lib/data";
+import type { Category } from "@/lib/categories";
+import type { NewTransaction, TransactionType } from "@/lib/types";
 
-function todayISO() {
+interface AddTransactionModalProps {
+  open: boolean;
+  onClose: () => void;
+}
+
+function todayISO(): string {
   return new Date().toISOString().slice(0, 10);
 }
 
-export default function AddTransactionModal({ open, onClose }) {
-  const { addTransaction, balances } = useLedger();
-  const accounts = Object.keys(balances);
-  const [form, setForm] = useState({
+function nowTimeHHMM(): string {
+  const d = new Date();
+  return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+}
+
+interface FormState {
+  Date: string;
+  Time: string;
+  Account: string;
+  Description: string;
+  Category: Category;
+  Type: TransactionType;
+  Amount: string;
+}
+
+function initialForm(accounts: string[]): FormState {
+  return {
     Date: todayISO(),
+    Time: nowTimeHHMM(),
     Account: accounts[0] || "",
     Description: "",
     Category: CATEGORY_ORDER[0],
     Type: "Debit",
     Amount: "",
-  });
+  };
+}
+
+export default function AddTransactionModal({ open, onClose }: AddTransactionModalProps) {
+  const { addTransaction, balances } = useLedger();
+  const accounts = Object.keys(balances);
+  const [form, setForm] = useState<FormState>(() => initialForm(accounts));
 
   if (!open) return null;
 
-  function update(field, value) {
+  function update<K extends keyof FormState>(field: K, value: FormState[K]) {
     setForm((f) => ({ ...f, [field]: value }));
   }
 
-  function handleSubmit(e) {
+  function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     if (!form.Description || !form.Amount) return;
-    addTransaction({
+    const tx: NewTransaction = {
       ...form,
       Amount: Number(form.Amount),
       Balance: "",
       Subcategory: "",
-    });
-    setForm({
-      Date: todayISO(),
-      Account: accounts[0] || "",
-      Description: "",
-      Category: CATEGORY_ORDER[0],
-      Type: "Debit",
-      Amount: "",
-    });
+      FullDescription: "",
+    };
+    addTransaction(tx);
+    setForm(initialForm(accounts));
     onClose();
   }
 
@@ -51,16 +73,12 @@ export default function AddTransactionModal({ open, onClose }) {
       <div className="bg-paper border border-ink rounded max-w-md w-full p-6">
         <div className="flex items-baseline justify-between mb-5">
           <h2 className="font-display text-xl">Log an expense</h2>
-          <button
-            onClick={onClose}
-            className="text-muted hover:text-ink text-sm"
-            aria-label="Close"
-          >
+          <button onClick={onClose} className="text-muted hover:text-ink text-sm" aria-label="Close">
             Close
           </button>
         </div>
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-3 gap-3">
             <div>
               <label className="block text-xs text-muted mb-1">Date</label>
               <input
@@ -72,10 +90,19 @@ export default function AddTransactionModal({ open, onClose }) {
               />
             </div>
             <div>
+              <label className="block text-xs text-muted mb-1">Time</label>
+              <input
+                type="time"
+                value={form.Time}
+                onChange={(e) => update("Time", e.target.value)}
+                className="w-full border border-line rounded px-2 py-1.5 text-sm bg-paper font-mono"
+              />
+            </div>
+            <div>
               <label className="block text-xs text-muted mb-1">Type</label>
               <select
                 value={form.Type}
-                onChange={(e) => update("Type", e.target.value)}
+                onChange={(e) => update("Type", e.target.value as TransactionType)}
                 className="w-full border border-line rounded px-2 py-1.5 text-sm bg-paper"
               >
                 <option value="Debit">Debit (spend)</option>
@@ -101,7 +128,7 @@ export default function AddTransactionModal({ open, onClose }) {
               <label className="block text-xs text-muted mb-1">Category</label>
               <select
                 value={form.Category}
-                onChange={(e) => update("Category", e.target.value)}
+                onChange={(e) => update("Category", e.target.value as Category)}
                 className="w-full border border-line rounded px-2 py-1.5 text-sm bg-paper"
               >
                 {CATEGORY_ORDER.map((c) => (

@@ -1,6 +1,11 @@
 import { formatINR } from "@/lib/data";
 
-export default function CategoryBreakdown({ entries, excludedSet }) {
+interface CategoryBreakdownProps {
+  entries: [string, number][];
+  excludedSet?: ReadonlySet<string>;
+}
+
+export default function CategoryBreakdown({ entries, excludedSet }: CategoryBreakdownProps) {
   const max = Math.max(...entries.map(([, v]) => v), 1);
 
   if (entries.length === 0) {
@@ -15,9 +20,7 @@ export default function CategoryBreakdown({ entries, excludedSet }) {
         return (
           <div key={cat}>
             <div className="flex justify-between items-baseline mb-1">
-              <span className={`text-sm ${excluded ? "text-muted italic" : "text-ink"}`}>
-                {cat}
-              </span>
+              <span className={`text-sm ${excluded ? "text-muted italic" : "text-ink"}`}>{cat}</span>
               <span className="font-mono tabular text-sm text-muted">{formatINR(amt)}</span>
             </div>
             <div className="h-1.5 bg-line rounded-sm overflow-hidden">

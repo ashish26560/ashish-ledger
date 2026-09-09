@@ -4,15 +4,21 @@ import { useMemo } from "react";
 import { useLedger } from "@/lib/DataContext";
 import { uniqueMonths, monthLabel, formatINR } from "@/lib/data";
 
+interface RecurringRow {
+  sub: string;
+  byMonth: Record<string, number>;
+  total: number;
+}
+
 export default function RecurringPage() {
   const { transactions } = useLedger();
   const months = useMemo(() => uniqueMonths(transactions), [transactions]);
 
-  const items = useMemo(() => {
+  const items = useMemo<RecurringRow[]>(() => {
     const withSub = transactions.filter((t) => t.Subcategory);
     const subs = Array.from(new Set(withSub.map((t) => t.Subcategory))).sort();
-    const table = subs.map((sub) => {
-      const row = { sub, byMonth: {}, total: 0 };
+    return subs.map((sub) => {
+      const row: RecurringRow = { sub, byMonth: {}, total: 0 };
       for (const m of months) row.byMonth[m] = 0;
       for (const t of withSub) {
         if (t.Subcategory === sub) {
@@ -22,12 +28,9 @@ export default function RecurringPage() {
       }
       return row;
     });
-    return table;
   }, [transactions, months]);
 
-  const monthTotals = months.map((m) =>
-    items.reduce((s, row) => s + (row.byMonth[m] || 0), 0)
-  );
+  const monthTotals = months.map((m) => items.reduce((s, row) => s + (row.byMonth[m] || 0), 0));
   const grandTotal = items.reduce((s, row) => s + row.total, 0);
 
   return (
@@ -61,9 +64,7 @@ export default function RecurringPage() {
                     {row.byMonth[m] ? formatINR(row.byMonth[m]) : "—"}
                   </td>
                 ))}
-                <td className="px-4 py-2 text-right font-mono tabular font-medium">
-                  {formatINR(row.total)}
-                </td>
+                <td className="px-4 py-2 text-right font-mono tabular font-medium">{formatINR(row.total)}</td>
               </tr>
             ))}
             {items.length === 0 && (
@@ -78,16 +79,11 @@ export default function RecurringPage() {
             <tr className="ledger-rule-strong border-t">
               <td className="px-4 py-2 font-medium text-rust">Total fixed obligations</td>
               {monthTotals.map((v, i) => (
-                <td
-                  key={months[i]}
-                  className="px-4 py-2 text-right font-mono tabular font-medium text-rust"
-                >
+                <td key={months[i]} className="px-4 py-2 text-right font-mono tabular font-medium text-rust">
                   {formatINR(v)}
                 </td>
               ))}
-              <td className="px-4 py-2 text-right font-mono tabular font-medium text-rust">
-                {formatINR(grandTotal)}
-              </td>
+              <td className="px-4 py-2 text-right font-mono tabular font-medium text-rust">{formatINR(grandTotal)}</td>
             </tr>
           </tfoot>
         </table>
