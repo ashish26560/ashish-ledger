@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useLedger } from "@/lib/DataContext";
-import { formatINR } from "@/lib/data";
+import { formatINR, uniqueAccounts } from "@/lib/data";
 import ImportStatementModal from "@/components/ImportStatementModal";
 
 interface AccountStats {
@@ -26,6 +26,14 @@ export default function AccountsPage() {
     }
     return map;
   }, [transactions]);
+
+  // Every account that appears in the ledger gets a card here, whether or
+  // not it already has a balances row — otherwise an account with no
+  // balance yet (a brand-new database, or one that got cleared) would have
+  // no card at all, and no way to enter one for the first time.
+  const allAccounts = useMemo(() => {
+    return Array.from(new Set([...uniqueAccounts(transactions), ...Object.keys(balances)])).sort();
+  }, [transactions, balances]);
 
   function save(account: string) {
     const val = edits[account];
@@ -53,19 +61,20 @@ export default function AccountsPage() {
       </header>
 
       <div className="space-y-6">
-        {Object.entries(balances).map(([account, b]) => {
+        {allAccounts.map((account) => {
+          const b = balances[account];
           const stats: AccountStats = perAccount[account] || { debit: 0, credit: 0, count: 0 };
           return (
             <div key={account} className="border border-line rounded bg-paper p-5">
               <div className="flex items-baseline justify-between mb-4">
                 <h2 className="font-display text-xl">{account}</h2>
-                <span className="text-xs text-muted">as of {b.asOf}</span>
+                <span className="text-xs text-muted">{b ? `as of ${b.asOf}` : "no balance recorded yet"}</span>
               </div>
 
               <div className="grid grid-cols-3 gap-4 mb-4">
                 <div>
                   <p className="text-xs text-muted mb-1">Closing balance</p>
-                  <p className="font-mono tabular text-xl text-forestDeep">{formatINR(b.balance)}</p>
+                  <p className="font-mono tabular text-xl text-forestDeep">{b ? formatINR(b.balance) : "—"}</p>
                 </div>
                 <div>
                   <p className="text-xs text-muted mb-1">Total debits</p>
