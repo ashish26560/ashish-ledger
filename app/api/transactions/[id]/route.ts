@@ -3,6 +3,11 @@ import { sql } from "@/lib/db";
 import { apiInternalError, parseJsonBody } from "@/lib/api-response";
 import { patchTransactionBodySchema, type PatchTransactionInput } from "@/lib/schemas";
 
+// The [id] segment already makes this dynamic in practice, but this is
+// explicit belt-and-braces alongside the other two route files — a mutating
+// endpoint should never risk being served from a cache.
+export const dynamic = "force-dynamic";
+
 // Whitelisted mapping from the app's PascalCase field names to the
 // database's snake_case columns. sql.unsafe() is only ever given a name
 // from this object (never anything derived from the request body), so this

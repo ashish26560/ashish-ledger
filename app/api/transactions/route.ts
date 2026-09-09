@@ -6,6 +6,12 @@ import { postTransactionsBodySchema } from "@/lib/schemas";
 import type { Category } from "@/lib/categories";
 import type { Transaction, TransactionType } from "@/lib/types";
 
+// Same reasoning as app/api/balances/route.ts: GET here has no
+// request-specific input, so without this Next.js can statically optimize
+// it, which risks POST getting a stale edge-cached 405 instead of reaching
+// this handler. Force every request to run live against the database.
+export const dynamic = "force-dynamic";
+
 // The literal shape @neondatabase/serverless hands back for a `transactions`
 // row — NUMERIC columns arrive as strings, which is why `rowToTransaction`
 // below does its own `Number(...)` conversion rather than trusting the type.
