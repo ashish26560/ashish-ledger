@@ -8,7 +8,8 @@ import AddTransactionModal from "@/components/AddTransactionModal";
 import ImportStatementModal from "@/components/ImportStatementModal";
 
 const ALL = "All";
-const PAGE_SIZE = 25;
+const PAGE_SIZE_OPTIONS = [10, 15, 25, 50, 100] as const;
+const DEFAULT_PAGE_SIZE = 15;
 
 export default function TransactionsPage() {
   const { transactions } = useLedger();
@@ -21,6 +22,7 @@ export default function TransactionsPage() {
   const [account, setAccount] = useState<string>(ALL);
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState<number>(DEFAULT_PAGE_SIZE);
   const [modalOpen, setModalOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
 
@@ -44,7 +46,7 @@ export default function TransactionsPage() {
       .sort((a, b) => compareDateTime(b, a));
   }, [transactions, month, category, account, search]);
 
-  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
 
   // Any filter change (or the list shrinking, e.g. after a delete) can make
   // the current page number no longer valid — snap it back into range
@@ -55,10 +57,10 @@ export default function TransactionsPage() {
 
   useEffect(() => {
     setPage(1);
-  }, [month, category, account, search]);
+  }, [month, category, account, search, pageSize]);
 
-  const pageStart = (page - 1) * PAGE_SIZE;
-  const paginated = filtered.slice(pageStart, pageStart + PAGE_SIZE);
+  const pageStart = (page - 1) * pageSize;
+  const paginated = filtered.slice(pageStart, pageStart + pageSize);
 
   const total = filtered.reduce((s, t) => {
     const amt = Number(t.Amount) || 0;
@@ -140,7 +142,7 @@ export default function TransactionsPage() {
             {filtered.length > 0 && (
               <>
                 {" "}
-                · {pageStart + 1}–{Math.min(pageStart + PAGE_SIZE, filtered.length)} of {filtered.length}
+                · {pageStart + 1}–{Math.min(pageStart + pageSize, filtered.length)} of {filtered.length}
               </>
             )}
           </span>
@@ -151,6 +153,20 @@ export default function TransactionsPage() {
           >
             Next
           </button>
+          <label className="flex items-center gap-2 text-sm text-muted ml-2">
+            Rows per page
+            <select
+              value={pageSize}
+              onChange={(e) => setPageSize(Number(e.target.value))}
+              className="bg-paper border border-line rounded px-2 py-1 text-sm"
+            >
+              {PAGE_SIZE_OPTIONS.map((size) => (
+                <option key={size} value={size}>
+                  {size}
+                </option>
+              ))}
+            </select>
+          </label>
         </div>
         <div className="flex items-baseline gap-3">
           <span className="text-sm text-muted">Total (filtered)</span>

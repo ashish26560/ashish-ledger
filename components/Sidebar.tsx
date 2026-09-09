@@ -18,7 +18,7 @@ export default function Sidebar() {
   const total = Object.values(balances).reduce((s, b) => s + Number(b.balance || 0), 0);
 
   return (
-    <aside className="w-[260px] shrink-0 border-r border-line bg-paperDim flex flex-col">
+    <aside className="w-[260px] shrink-0 border-r border-line bg-paperDim flex flex-col sticky top-0 h-screen overflow-y-auto">
       <div className="px-6 pt-8 pb-6 ledger-rule-strong">
         <p className="font-display italic text-lg text-ink leading-none">Ashish&apos;s</p>
         <p className="font-display text-2xl text-ink leading-tight">Ledger</p>
