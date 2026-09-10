@@ -36,7 +36,21 @@ function getClient(): SqlClient {
           "(or run `vercel env pull .env.development.local` locally) — see README 'Database setup'."
       );
     }
-    cachedClient = neon(connectionString);
+    // `cache: "no-store"` is load-bearing, not a nicety. This driver talks to
+    // Neon over HTTP using the global `fetch`, and Next.js patches `fetch` to
+    // route it through the Data Cache — which is keyed by the request (so, by
+    // the SQL text) and, unlike the CDN cache, PERSISTS ACROSS DEPLOYMENTS.
+    // Without this, a query whose SQL string never changes gets answered from
+    // that cache indefinitely: `GET /api/balances` kept serving a deleted row
+    // for days while the identical query with one extra column in the SELECT
+    // list (a different cache key, so a real round trip) correctly returned
+    // nothing. Redeploying didn't clear it, `X-Vercel-Cache: MISS` didn't
+    // reveal it (that header only describes the CDN layer, and the function
+    // really was running — it was the fetch inside it being cached), and
+    // `export const dynamic = "force-dynamic"` on the routes didn't stop it.
+    // Opting out here, at the one place the client is built, covers every
+    // query in the app rather than relying on per-route configuration.
+    cachedClient = neon(connectionString, { fetchOptions: { cache: "no-store" } });
   }
   return cachedClient;
 }
