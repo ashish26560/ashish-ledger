@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useLedger } from "@/lib/DataContext";
 import { uniqueMonths, uniqueCategories, uniqueAccounts, monthLabel, formatINR, compareDateTime } from "@/lib/data";
+import Select from "@/components/Select";
 import TransactionsTable from "@/components/TransactionsTable";
 import AddTransactionModal from "@/components/AddTransactionModal";
 import ImportStatementModal from "@/components/ImportStatementModal";
@@ -67,7 +68,24 @@ export default function TransactionsPage() {
     return s + (t.Type === "Credit" ? amt : -amt);
   }, 0);
 
-  const selectCls = "bg-paper border border-line rounded px-2 py-2 md:py-1.5 text-sm min-w-0";
+  const monthOptions = useMemo(
+    () => [{ value: ALL, label: "All months" }, ...months.map((m) => ({ value: m, label: monthLabel(m) }))],
+    [months]
+  );
+  const categoryOptions = useMemo(
+    () => [{ value: ALL, label: "All categories" }, ...categories.map((c) => ({ value: c, label: c }))],
+    [categories]
+  );
+  const accountOptions = useMemo(
+    () => [{ value: ALL, label: "All accounts" }, ...accounts.map((a) => ({ value: a, label: a }))],
+    [accounts]
+  );
+  const pageSizeOptions = useMemo(
+    () => PAGE_SIZE_OPTIONS.map((size) => ({ value: String(size), label: String(size) })),
+    []
+  );
+
+  const selectCls = "w-full md:w-auto";
 
   return (
     <div className="px-4 md:px-10 py-6 md:py-8">
@@ -94,30 +112,27 @@ export default function TransactionsPage() {
 
       {/* Two-up on phones so the three dropdowns don't each eat a full row */}
       <div className="grid grid-cols-2 md:flex md:flex-wrap gap-2 md:gap-3 mb-4 md:mb-5">
-        <select value={month} onChange={(e) => setMonth(e.target.value)} className={selectCls}>
-          <option value={ALL}>All months</option>
-          {months.map((m) => (
-            <option key={m} value={m}>
-              {monthLabel(m)}
-            </option>
-          ))}
-        </select>
-        <select value={category} onChange={(e) => setCategory(e.target.value)} className={selectCls}>
-          <option value={ALL}>All categories</option>
-          {categories.map((c) => (
-            <option key={c} value={c}>
-              {c}
-            </option>
-          ))}
-        </select>
-        <select value={account} onChange={(e) => setAccount(e.target.value)} className={selectCls}>
-          <option value={ALL}>All accounts</option>
-          {accounts.map((a) => (
-            <option key={a} value={a}>
-              {a}
-            </option>
-          ))}
-        </select>
+        <Select
+          label="Month"
+          value={month}
+          onChange={setMonth}
+          options={monthOptions}
+          className={selectCls}
+        />
+        <Select
+          label="Category"
+          value={category}
+          onChange={setCategory}
+          options={categoryOptions}
+          className={selectCls}
+        />
+        <Select
+          label="Account"
+          value={account}
+          onChange={setAccount}
+          options={accountOptions}
+          className={selectCls}
+        />
         <input
           type="search"
           inputMode="search"
@@ -171,17 +186,14 @@ export default function TransactionsPage() {
         <div className="flex items-center justify-between md:justify-start gap-3 md:gap-6">
           <label className="flex items-center gap-2 text-sm text-muted">
             Rows per page
-            <select
-              value={pageSize}
-              onChange={(e) => setPageSize(Number(e.target.value))}
-              className="bg-paper border border-line rounded px-2 py-1.5 md:py-1 text-sm"
-            >
-              {PAGE_SIZE_OPTIONS.map((size) => (
-                <option key={size} value={size}>
-                  {size}
-                </option>
-              ))}
-            </select>
+            <Select
+              label="Rows per page"
+              value={String(pageSize)}
+              onChange={(v) => setPageSize(Number(v))}
+              options={pageSizeOptions}
+              align="right"
+              className="w-[72px]"
+            />
           </label>
 
           <div className="hidden md:flex items-baseline gap-3">

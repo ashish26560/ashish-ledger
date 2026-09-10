@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useLedger } from "@/lib/DataContext";
+import Select from "@/components/Select";
 import { formatINR, CATEGORY_ORDER } from "@/lib/data";
 import type { Category } from "@/lib/categories";
 import type { Transaction } from "@/lib/types";
@@ -21,8 +22,7 @@ export default function TransactionsTable({ rows }: TransactionsTableProps) {
   // expands it instead.
   const [expanded, setExpanded] = useState<string | null>(null);
 
-  const categorySelectCls =
-    "bg-transparent border border-transparent hover:border-line rounded text-xs py-1 px-1 -ml-1 max-w-full";
+  const categoryOptions = CATEGORY_ORDER.map((c) => ({ value: c, label: c }));
 
   if (rows.length === 0) {
     return (
@@ -82,18 +82,13 @@ export default function TransactionsTable({ rows }: TransactionsTableProps) {
             </p>
 
             <div className="flex items-center justify-between gap-2 mt-2 pt-2 border-t border-line">
-              <select
+              <Select
+                label={`Category for ${tx.Description}`}
                 value={tx.Category}
-                onChange={(e) => updateTransaction(tx.id, { Category: e.target.value as Category })}
-                aria-label="Category"
-                className="bg-paperDim border border-line rounded text-xs py-1.5 px-2 flex-1 min-w-0"
-              >
-                {CATEGORY_ORDER.map((c) => (
-                  <option key={c} value={c}>
-                    {c}
-                  </option>
-                ))}
-              </select>
+                onChange={(v) => updateTransaction(tx.id, { Category: v as Category })}
+                options={categoryOptions}
+                className="flex-1 min-w-0 bg-paperDim"
+              />
               <button
                 onClick={() => deleteTransaction(tx.id)}
                 className="text-muted hover:text-rust active:text-rust text-xs shrink-0 h-9 w-9 flex items-center justify-center rounded border border-line"
@@ -132,18 +127,13 @@ export default function TransactionsTable({ rows }: TransactionsTableProps) {
                     {tx.Description}
                   </td>
                   <td className="px-4 py-2">
-                    <select
+                    <Select
+                      label={`Category for ${tx.Description}`}
                       value={tx.Category}
-                      onChange={(e) => updateTransaction(tx.id, { Category: e.target.value as Category })}
-                      aria-label="Category"
-                      className={categorySelectCls}
-                    >
-                      {CATEGORY_ORDER.map((c) => (
-                        <option key={c} value={c}>
-                          {c}
-                        </option>
-                      ))}
-                    </select>
+                      onChange={(v) => updateTransaction(tx.id, { Category: v as Category })}
+                      options={categoryOptions}
+                      className="w-full max-w-[190px] bg-transparent border-transparent hover:border-line"
+                    />
                   </td>
                   <td
                     className={`px-4 py-2 text-right font-mono tabular whitespace-nowrap ${

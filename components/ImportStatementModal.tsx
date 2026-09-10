@@ -2,11 +2,14 @@
 
 import { useMemo, useState, type ChangeEvent } from "react";
 import { useLedger } from "@/lib/DataContext";
+import Select from "@/components/Select";
 import { CATEGORY_ORDER, formatINR, uniqueAccounts } from "@/lib/data";
 import { parseStatementFile } from "@/lib/statementParser";
 import { categorizeAll } from "@/lib/categorize";
 import type { Category } from "@/lib/categories";
 import type { ImportRow, NewTransaction, ParsedStatement } from "@/lib/types";
+
+const CATEGORY_OPTIONS = CATEGORY_ORDER.map((c) => ({ value: c, label: c }));
 
 interface ImportStatementModalProps {
   open: boolean;
@@ -199,34 +202,25 @@ export default function ImportStatementModal({ open, onClose }: ImportStatementM
                         {/* The category picker has no column of its own on a
                             phone, so it sits with the row it belongs to. */}
                         <span className="sm:hidden block mt-1">
-                          <select
+                          <Select
+                            label={`Category for ${r.Description}`}
                             value={r.category}
                             disabled={r.duplicate}
-                            onChange={(e) => updateRow(idx, { category: e.target.value as Category, confidence: "manual" })}
-                            aria-label="Category"
-                            className="bg-paperDim border border-line rounded text-xs py-1 px-1 max-w-full"
-                          >
-                            {CATEGORY_ORDER.map((c) => (
-                              <option key={c} value={c}>
-                                {c}
-                              </option>
-                            ))}
-                          </select>
+                            onChange={(v) => updateRow(idx, { category: v as Category, confidence: "manual" })}
+                            options={CATEGORY_OPTIONS}
+                            className="max-w-full bg-paperDim"
+                          />
                         </span>
                       </td>
                       <td className="px-3 py-1.5 hidden sm:table-cell">
-                        <select
+                        <Select
+                          label={`Category for ${r.Description}`}
                           value={r.category}
                           disabled={r.duplicate}
-                          onChange={(e) => updateRow(idx, { category: e.target.value as Category, confidence: "manual" })}
-                          className="bg-transparent border border-transparent hover:border-line rounded text-xs py-1 px-1 -ml-1"
-                        >
-                          {CATEGORY_ORDER.map((c) => (
-                            <option key={c} value={c}>
-                              {c}
-                            </option>
-                          ))}
-                        </select>
+                          onChange={(v) => updateRow(idx, { category: v as Category, confidence: "manual" })}
+                          options={CATEGORY_OPTIONS}
+                          className="w-full max-w-[170px] bg-transparent border-transparent hover:border-line"
+                        />
                       </td>
                       <td
                         className={`px-3 py-2 sm:py-1.5 text-right font-mono tabular whitespace-nowrap align-top sm:align-middle ${

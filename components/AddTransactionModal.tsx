@@ -2,9 +2,17 @@
 
 import { useState, type FormEvent } from "react";
 import { useLedger } from "@/lib/DataContext";
+import Select from "@/components/Select";
 import { CATEGORY_ORDER } from "@/lib/data";
 import type { Category } from "@/lib/categories";
 import type { NewTransaction, TransactionType } from "@/lib/types";
+
+const TYPE_OPTIONS = [
+  { value: "Debit", label: "Debit (spend)" },
+  { value: "Credit", label: "Credit (income)" },
+] as const;
+
+const CATEGORY_OPTIONS = CATEGORY_ORDER.map((c) => ({ value: c, label: c }));
 
 interface AddTransactionModalProps {
   open: boolean;
@@ -107,14 +115,13 @@ export default function AddTransactionModal({ open, onClose }: AddTransactionMod
             </div>
             <div className="col-span-2 sm:col-span-1">
               <label className="block text-xs text-muted mb-1">Type</label>
-              <select
+              <Select
+                label="Type"
                 value={form.Type}
-                onChange={(e) => update("Type", e.target.value as TransactionType)}
-                className="w-full border border-line rounded px-2 py-2 sm:py-1.5 text-sm bg-paper"
-              >
-                <option value="Debit">Debit (spend)</option>
-                <option value="Credit">Credit (income)</option>
-              </select>
+                onChange={(v) => update("Type", v as TransactionType)}
+                options={TYPE_OPTIONS}
+                className="w-full"
+              />
             </div>
           </div>
 
@@ -133,17 +140,13 @@ export default function AddTransactionModal({ open, onClose }: AddTransactionMod
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-xs text-muted mb-1">Category</label>
-              <select
+              <Select
+                label="Category"
                 value={form.Category}
-                onChange={(e) => update("Category", e.target.value as Category)}
-                className="w-full border border-line rounded px-2 py-2 sm:py-1.5 text-sm bg-paper"
-              >
-                {CATEGORY_ORDER.map((c) => (
-                  <option key={c} value={c}>
-                    {c}
-                  </option>
-                ))}
-              </select>
+                onChange={(v) => update("Category", v as Category)}
+                options={CATEGORY_OPTIONS}
+                className="w-full"
+              />
             </div>
             <div>
               <label className="block text-xs text-muted mb-1">Account</label>
@@ -159,17 +162,13 @@ export default function AddTransactionModal({ open, onClose }: AddTransactionMod
                   required
                 />
               ) : (
-                <select
+                <Select
+                  label="Account"
                   value={form.Account}
-                  onChange={(e) => update("Account", e.target.value)}
-                  className="w-full border border-line rounded px-2 py-2 sm:py-1.5 text-sm bg-paper"
-                >
-                  {accounts.map((a) => (
-                    <option key={a} value={a}>
-                      {a}
-                    </option>
-                  ))}
-                </select>
+                  onChange={(v) => update("Account", v)}
+                  options={accounts.map((a) => ({ value: a, label: a }))}
+                  className="w-full"
+                />
               )}
             </div>
           </div>

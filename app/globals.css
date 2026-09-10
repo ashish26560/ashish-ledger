@@ -14,13 +14,13 @@ html, body {
   -webkit-font-smoothing: antialiased;
 }
 
-/* iOS Safari zooms the whole page when you focus an input whose font-size is
-   under 16px. The app's inputs are visually smaller than that, so pin the
-   computed size to 16px on touch devices only and let the desktop sizes
-   stand. */
+/* iOS Safari zooms the whole page when you focus a form control whose
+   font-size is under 16px. Text inputs still need the bump, but dropdowns
+   don't: components/Select.tsx renders a <button>, which isn't a form
+   control and so is exempt — which is why it can use the app's own type
+   scale instead of looking oversized next to everything else. */
 @media (max-width: 767px) {
   input,
-  select,
   textarea {
     font-size: 16px !important;
   }

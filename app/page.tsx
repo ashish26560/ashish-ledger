@@ -12,6 +12,7 @@ import {
   compareDateTime,
   formatDateTime,
 } from "@/lib/data";
+import Select from "@/components/Select";
 import StatCard from "@/components/StatCard";
 import MonthlyTrendChart from "@/components/MonthlyTrendChart";
 import CategoryBreakdown from "@/components/CategoryBreakdown";
@@ -33,6 +34,8 @@ export default function Dashboard() {
 
   const categoryTotals = useMemo(() => computeCategoryTotals(transactions, selectedMonth), [transactions, selectedMonth]);
   const sortedCategories = Object.entries(categoryTotals).sort((a, b) => b[1] - a[1]);
+
+  const monthOptions = useMemo(() => months.map((m) => ({ value: m, label: monthLabel(m) })), [months]);
 
   const recent = useMemo(
     () =>
@@ -88,18 +91,14 @@ export default function Dashboard() {
         <div>
           <div className="flex items-baseline justify-between mb-3 md:mb-4">
             <h2 className="font-display text-lg md:text-xl">By category</h2>
-            <select
-              value={selectedMonth}
-              onChange={(e) => setSelectedMonth(e.target.value)}
-              aria-label="Month"
-              className="bg-paper border border-line rounded px-2 py-1.5 md:py-1 text-sm font-mono"
-            >
-              {months.map((m) => (
-                <option key={m} value={m}>
-                  {monthLabel(m)}
-                </option>
-              ))}
-            </select>
+            <Select
+              label="Month"
+              value={selectedMonth ?? ""}
+              onChange={setSelectedMonth}
+              options={monthOptions}
+              align="right"
+              className="font-mono"
+            />
           </div>
           <div className="border border-line rounded bg-paper p-4 md:p-5">
             <CategoryBreakdown entries={sortedCategories} excludedSet={EXCLUDED_FROM_EXPENSE} />
