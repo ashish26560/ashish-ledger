@@ -67,32 +67,33 @@ export default function TransactionsPage() {
     return s + (t.Type === "Credit" ? amt : -amt);
   }, 0);
 
-  const selectCls = "bg-paper border border-line rounded px-2 py-1.5 text-sm";
+  const selectCls = "bg-paper border border-line rounded px-2 py-2 md:py-1.5 text-sm min-w-0";
 
   return (
-    <div className="px-10 py-8">
-      <header className="flex items-baseline justify-between mb-6">
+    <div className="px-4 md:px-10 py-6 md:py-8">
+      <header className="flex flex-col sm:flex-row sm:items-baseline sm:justify-between gap-3 mb-5 md:mb-6">
         <div>
-          <h1 className="font-display text-3xl">Transactions</h1>
+          <h1 className="font-display text-2xl md:text-3xl">Transactions</h1>
           <p className="text-sm text-muted mt-1">{filtered.length} entries</p>
         </div>
-        <div className="flex gap-2">
+        <div className="grid grid-cols-2 sm:flex gap-2">
           <button
             onClick={() => setImportOpen(true)}
-            className="border border-line rounded px-4 py-2 text-sm hover:bg-paperDim/60 transition-colors"
+            className="border border-line rounded px-4 py-2.5 sm:py-2 text-sm hover:bg-paperDim/60 active:bg-paperDim transition-colors"
           >
             Upload statement
           </button>
           <button
             onClick={() => setModalOpen(true)}
-            className="bg-forest text-paper rounded px-4 py-2 text-sm hover:bg-forestDeep transition-colors"
+            className="bg-forest text-paper rounded px-4 py-2.5 sm:py-2 text-sm hover:bg-forestDeep active:bg-forestDeep transition-colors"
           >
             Log an expense
           </button>
         </div>
       </header>
 
-      <div className="flex flex-wrap gap-3 mb-5">
+      {/* Two-up on phones so the three dropdowns don't each eat a full row */}
+      <div className="grid grid-cols-2 md:flex md:flex-wrap gap-2 md:gap-3 mb-4 md:mb-5">
         <select value={month} onChange={(e) => setMonth(e.target.value)} className={selectCls}>
           <option value={ALL}>All months</option>
           {months.map((m) => (
@@ -118,26 +119,38 @@ export default function TransactionsPage() {
           ))}
         </select>
         <input
-          type="text"
+          type="search"
+          inputMode="search"
           placeholder="Search description..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="bg-paper border border-line rounded px-3 py-1.5 text-sm flex-1 min-w-[180px]"
+          aria-label="Search description"
+          className="col-span-2 bg-paper border border-line rounded px-3 py-2 md:py-1.5 text-sm md:flex-1 md:min-w-[180px]"
         />
       </div>
 
       <TransactionsTable rows={paginated} />
 
-      <div className="flex items-center justify-between mt-3 pr-2">
-        <div className="flex items-center gap-3">
+      {/* On phones the filtered total gets its own full-width row above the
+          pager — it's the number worth reading, and it would otherwise be
+          crushed against the Next button. */}
+      <div className="flex items-baseline justify-between gap-3 mt-4 md:hidden border-t border-line pt-3">
+        <span className="text-sm text-muted">Total (filtered)</span>
+        <span className={`font-mono tabular text-lg ${total < 0 ? "text-rust" : "text-forestDeep"}`}>
+          {formatINR(total, { signed: true })}
+        </span>
+      </div>
+
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mt-3 md:pr-2">
+        <div className="flex items-center justify-between md:justify-start gap-2 md:gap-3">
           <button
             onClick={() => setPage((p) => Math.max(1, p - 1))}
             disabled={page <= 1}
-            className="border border-line rounded px-3 py-1.5 text-sm hover:bg-paperDim/60 transition-colors disabled:opacity-40 disabled:hover:bg-transparent"
+            className="border border-line rounded px-4 py-2.5 md:px-3 md:py-1.5 text-sm hover:bg-paperDim/60 active:bg-paperDim transition-colors disabled:opacity-40 disabled:hover:bg-transparent"
           >
             Previous
           </button>
-          <span className="text-sm text-muted">
+          <span className="text-xs md:text-sm text-muted text-center">
             Page {page} of {totalPages}
             {filtered.length > 0 && (
               <>
@@ -149,16 +162,19 @@ export default function TransactionsPage() {
           <button
             onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
             disabled={page >= totalPages}
-            className="border border-line rounded px-3 py-1.5 text-sm hover:bg-paperDim/60 transition-colors disabled:opacity-40 disabled:hover:bg-transparent"
+            className="border border-line rounded px-4 py-2.5 md:px-3 md:py-1.5 text-sm hover:bg-paperDim/60 active:bg-paperDim transition-colors disabled:opacity-40 disabled:hover:bg-transparent"
           >
             Next
           </button>
-          <label className="flex items-center gap-2 text-sm text-muted ml-2">
+        </div>
+
+        <div className="flex items-center justify-between md:justify-start gap-3 md:gap-6">
+          <label className="flex items-center gap-2 text-sm text-muted">
             Rows per page
             <select
               value={pageSize}
               onChange={(e) => setPageSize(Number(e.target.value))}
-              className="bg-paper border border-line rounded px-2 py-1 text-sm"
+              className="bg-paper border border-line rounded px-2 py-1.5 md:py-1 text-sm"
             >
               {PAGE_SIZE_OPTIONS.map((size) => (
                 <option key={size} value={size}>
@@ -167,12 +183,13 @@ export default function TransactionsPage() {
               ))}
             </select>
           </label>
-        </div>
-        <div className="flex items-baseline gap-3">
-          <span className="text-sm text-muted">Total (filtered)</span>
-          <span className={`font-mono tabular text-lg ${total < 0 ? "text-rust" : "text-forestDeep"}`}>
-            {formatINR(total, { signed: true })}
-          </span>
+
+          <div className="hidden md:flex items-baseline gap-3">
+            <span className="text-sm text-muted">Total (filtered)</span>
+            <span className={`font-mono tabular text-lg ${total < 0 ? "text-rust" : "text-forestDeep"}`}>
+              {formatINR(total, { signed: true })}
+            </span>
+          </div>
         </div>
       </div>
 

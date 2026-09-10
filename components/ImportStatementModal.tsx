@@ -101,11 +101,16 @@ export default function ImportStatementModal({ open, onClose }: ImportStatementM
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 bg-ink/40 flex items-center justify-center z-50 px-4">
-      <div className="bg-paper border border-ink rounded max-w-3xl w-full p-6 max-h-[85vh] flex flex-col">
+    <div
+      className="fixed inset-0 bg-ink/40 flex items-end sm:items-center justify-center z-50 sm:px-4"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Upload a statement"
+    >
+      <div className="bg-paper border border-ink rounded-t-lg sm:rounded max-w-3xl w-full p-4 sm:p-6 h-[92vh] sm:h-auto sm:max-h-[85vh] flex flex-col">
         <div className="flex items-baseline justify-between mb-4 shrink-0">
-          <h2 className="font-display text-xl">Upload a statement</h2>
-          <button onClick={handleClose} className="text-muted hover:text-ink text-sm" aria-label="Close">
+          <h2 className="font-display text-lg sm:text-xl">Upload a statement</h2>
+          <button onClick={handleClose} className="text-muted hover:text-ink text-sm py-1 px-2 -mr-2" aria-label="Close">
             Close
           </button>
         </div>
@@ -136,7 +141,7 @@ export default function ImportStatementModal({ open, onClose }: ImportStatementM
 
         {stage === "preview" && result && (
           <div className="flex flex-col min-h-0 flex-1">
-            <div className="shrink-0 mb-3 text-sm text-muted flex flex-wrap items-baseline gap-x-4 gap-y-1">
+            <div className="shrink-0 mb-3 text-xs sm:text-sm text-muted flex flex-wrap items-baseline gap-x-4 gap-y-1">
               <span>
                 <span className="text-ink">{result.bank}</span> · {result.account}
                 {result.isNewAccount && <span className="text-gold"> (new account)</span>}
@@ -160,9 +165,9 @@ export default function ImportStatementModal({ open, onClose }: ImportStatementM
                 <thead className="sticky top-0 bg-paperDim">
                   <tr className="ledger-rule-strong text-left text-xs text-muted">
                     <th className="px-3 py-2 font-normal w-8"></th>
-                    <th className="px-3 py-2 font-normal">Date</th>
+                    <th className="px-3 py-2 font-normal hidden sm:table-cell">Date</th>
                     <th className="px-3 py-2 font-normal">Description</th>
-                    <th className="px-3 py-2 font-normal">Category</th>
+                    <th className="px-3 py-2 font-normal hidden sm:table-cell">Category</th>
                     <th className="px-3 py-2 font-normal text-right">Amount</th>
                   </tr>
                 </thead>
@@ -182,12 +187,34 @@ export default function ImportStatementModal({ open, onClose }: ImportStatementM
                           onChange={(e) => updateRow(idx, { include: e.target.checked })}
                         />
                       </td>
-                      <td className="px-3 py-1.5 font-mono tabular text-xs text-muted whitespace-nowrap">{r.Date}</td>
-                      <td className="px-3 py-1.5 max-w-[220px] truncate" title={r.RawNarration}>
-                        {r.Description}
-                        {r.duplicate && <span className="text-muted text-xs"> · already imported</span>}
+                      <td className="px-3 py-1.5 font-mono tabular text-xs text-muted whitespace-nowrap hidden sm:table-cell">
+                        {r.Date}
                       </td>
-                      <td className="px-3 py-1.5">
+                      <td className="px-3 py-2 sm:py-1.5 max-w-[160px] sm:max-w-[220px]" title={r.RawNarration}>
+                        <span className="block truncate">{r.Description}</span>
+                        {r.duplicate && <span className="text-muted text-xs">already imported</span>}
+                        <span className="sm:hidden block font-mono tabular text-[11px] text-muted mt-0.5">
+                          {r.Date}
+                        </span>
+                        {/* The category picker has no column of its own on a
+                            phone, so it sits with the row it belongs to. */}
+                        <span className="sm:hidden block mt-1">
+                          <select
+                            value={r.category}
+                            disabled={r.duplicate}
+                            onChange={(e) => updateRow(idx, { category: e.target.value as Category, confidence: "manual" })}
+                            aria-label="Category"
+                            className="bg-paperDim border border-line rounded text-xs py-1 px-1 max-w-full"
+                          >
+                            {CATEGORY_ORDER.map((c) => (
+                              <option key={c} value={c}>
+                                {c}
+                              </option>
+                            ))}
+                          </select>
+                        </span>
+                      </td>
+                      <td className="px-3 py-1.5 hidden sm:table-cell">
                         <select
                           value={r.category}
                           disabled={r.duplicate}
@@ -202,7 +229,7 @@ export default function ImportStatementModal({ open, onClose }: ImportStatementM
                         </select>
                       </td>
                       <td
-                        className={`px-3 py-1.5 text-right font-mono tabular whitespace-nowrap ${
+                        className={`px-3 py-2 sm:py-1.5 text-right font-mono tabular whitespace-nowrap align-top sm:align-middle ${
                           r.Type === "Credit" ? "text-forestDeep" : "text-ink"
                         }`}
                       >
@@ -215,7 +242,7 @@ export default function ImportStatementModal({ open, onClose }: ImportStatementM
               </table>
             </div>
 
-            <div className="shrink-0 pt-4 mt-1 border-t border-line flex items-center justify-between">
+            <div className="shrink-0 pt-3 sm:pt-4 mt-1 border-t border-line flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-[env(safe-area-inset-bottom)] sm:pb-0">
               <label className="flex items-center gap-2 text-sm text-muted">
                 {result.closingBalance != null && (
                   <>
@@ -231,7 +258,7 @@ export default function ImportStatementModal({ open, onClose }: ImportStatementM
               <button
                 onClick={handleImport}
                 disabled={toImport.length === 0}
-                className="bg-forest text-paper rounded px-4 py-2 text-sm hover:bg-forestDeep transition-colors disabled:opacity-40"
+                className="bg-forest text-paper rounded px-4 py-3 sm:py-2 text-sm hover:bg-forestDeep active:bg-forestDeep transition-colors disabled:opacity-40 w-full sm:w-auto"
               >
                 Import {toImport.length} transaction{toImport.length === 1 ? "" : "s"}
               </button>
@@ -247,13 +274,13 @@ export default function ImportStatementModal({ open, onClose }: ImportStatementM
             <div className="flex gap-3">
               <button
                 onClick={reset}
-                className="border border-line rounded px-3 py-1.5 text-sm hover:bg-paperDim/60 transition-colors"
+                className="border border-line rounded px-4 py-2.5 sm:py-1.5 text-sm hover:bg-paperDim/60 active:bg-paperDim transition-colors"
               >
                 Upload another
               </button>
               <button
                 onClick={handleClose}
-                className="bg-ink text-paper rounded px-3 py-1.5 text-sm hover:bg-forestDeep transition-colors"
+                className="bg-ink text-paper rounded px-4 py-2.5 sm:py-1.5 text-sm hover:bg-forestDeep active:bg-forestDeep transition-colors"
               >
                 Done
               </button>

@@ -2,6 +2,7 @@
 
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
 import { formatINR, monthLabel } from "@/lib/data";
+import { useIsCompact } from "@/lib/useIsCompact";
 
 interface MonthlyTrendPoint {
   month: string;
@@ -14,23 +15,28 @@ interface MonthlyTrendChartProps {
 
 export default function MonthlyTrendChart({ data }: MonthlyTrendChartProps) {
   const chartData = data.map((d) => ({ ...d, label: monthLabel(d.month) }));
+  const isCompact = useIsCompact();
 
   return (
-    <div className="h-64">
+    <div className="h-48 md:h-64">
       <ResponsiveContainer width="100%" height="100%">
         <BarChart data={chartData} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
           <CartesianGrid vertical={false} stroke="#D9D6CC" />
           <XAxis
             dataKey="label"
-            tick={{ fontSize: 12, fill: "#6E6A61", fontFamily: "var(--font-plex-sans)" }}
+            tick={{ fontSize: isCompact ? 10 : 12, fill: "#6E6A61", fontFamily: "var(--font-plex-sans)" }}
             axisLine={{ stroke: "#D9D6CC" }}
             tickLine={false}
+            interval="preserveStartEnd"
+            minTickGap={isCompact ? 4 : 8}
           />
           <YAxis
-            tick={{ fontSize: 11, fill: "#6E6A61", fontFamily: "var(--font-plex-mono)" }}
+            tick={{ fontSize: isCompact ? 10 : 11, fill: "#6E6A61", fontFamily: "var(--font-plex-mono)" }}
             axisLine={false}
             tickLine={false}
-            width={70}
+            // A 70px gutter is a big share of a 360px screen — the labels are
+            // short ("₹12k") so they fit comfortably in 44px there.
+            width={isCompact ? 44 : 70}
             tickFormatter={(v: number) => `₹${(v / 1000).toFixed(0)}k`}
           />
           <Tooltip

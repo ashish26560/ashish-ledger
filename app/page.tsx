@@ -44,17 +44,19 @@ export default function Dashboard() {
   );
 
   return (
-    <div className="px-10 py-8 max-w-5xl">
-      <header className="flex items-baseline justify-between mb-8">
+    <div className="px-4 md:px-10 py-6 md:py-8 max-w-5xl">
+      <header className="flex items-baseline justify-between mb-6 md:mb-8">
         <div>
-          <h1 className="font-display text-3xl">Dashboard</h1>
+          <h1 className="font-display text-2xl md:text-3xl">Dashboard</h1>
           <p className="text-sm text-muted mt-1">
             {months.length ? `${monthLabel(months[0])} – ${monthLabel(months[months.length - 1])}` : ""}
           </p>
         </div>
       </header>
 
-      <section className="grid grid-cols-3 gap-4 mb-10">
+      {/* Balance and net expense side by side on phones (they're the pair you
+          compare); the transaction count spans underneath. */}
+      <section className="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-4 mb-8 md:mb-10">
         <StatCard label="Total balance (both accounts)" value={formatINR(totalBalance)} />
         <StatCard
           label={`Net expense — ${monthLabel(selectedMonth || "")}`}
@@ -64,30 +66,33 @@ export default function Dashboard() {
             delta != null ? `${delta >= 0 ? "+" : ""}${formatINR(delta)} vs ${monthLabel(months[prevMonthIndex])}` : undefined
           }
         />
-        <StatCard
-          label="Transactions logged"
-          value={transactions.length.toLocaleString("en-IN")}
-          sub={`Across ${Object.keys(balances).length} accounts`}
-        />
+        <div className="col-span-2 md:col-span-1">
+          <StatCard
+            label="Transactions logged"
+            value={transactions.length.toLocaleString("en-IN")}
+            sub={`Across ${Object.keys(balances).length} accounts`}
+          />
+        </div>
       </section>
 
-      <section className="mb-10">
-        <div className="flex items-baseline justify-between mb-4">
-          <h2 className="font-display text-xl">Monthly spend</h2>
+      <section className="mb-8 md:mb-10">
+        <div className="flex items-baseline justify-between mb-3 md:mb-4">
+          <h2 className="font-display text-lg md:text-xl">Monthly spend</h2>
         </div>
-        <div className="border border-line rounded bg-paper p-5">
+        <div className="border border-line rounded bg-paper p-3 md:p-5">
           <MonthlyTrendChart data={chartData} />
         </div>
       </section>
 
-      <section className="grid grid-cols-2 gap-8">
+      <section className="grid grid-cols-1 md:grid-cols-2 gap-8">
         <div>
-          <div className="flex items-baseline justify-between mb-4">
-            <h2 className="font-display text-xl">By category</h2>
+          <div className="flex items-baseline justify-between mb-3 md:mb-4">
+            <h2 className="font-display text-lg md:text-xl">By category</h2>
             <select
               value={selectedMonth}
               onChange={(e) => setSelectedMonth(e.target.value)}
-              className="bg-paper border border-line rounded px-2 py-1 text-sm font-mono"
+              aria-label="Month"
+              className="bg-paper border border-line rounded px-2 py-1.5 md:py-1 text-sm font-mono"
             >
               {months.map((m) => (
                 <option key={m} value={m}>
@@ -96,13 +101,15 @@ export default function Dashboard() {
               ))}
             </select>
           </div>
-          <div className="border border-line rounded bg-paper p-5">
+          <div className="border border-line rounded bg-paper p-4 md:p-5">
             <CategoryBreakdown entries={sortedCategories} excludedSet={EXCLUDED_FROM_EXPENSE} />
           </div>
         </div>
 
         <div>
-          <h2 className="font-display text-xl mb-4">Recent activity — {monthLabel(selectedMonth || "")}</h2>
+          <h2 className="font-display text-lg md:text-xl mb-3 md:mb-4">
+            Recent activity — {monthLabel(selectedMonth || "")}
+          </h2>
           <div className="border border-line rounded bg-paper divide-y divide-line">
             {recent.map((tx) => (
               <div key={tx.id} className="px-4 py-3 flex justify-between items-center">

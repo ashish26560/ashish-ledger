@@ -5,10 +5,34 @@
 html, body {
   background-color: #F4F3EE;
   color: #1B1D1F;
+  /* Nothing in this app is meant to scroll sideways at the page level —
+     wide things (tables, charts) scroll inside their own containers. */
+  overflow-x: hidden;
 }
 
 * {
   -webkit-font-smoothing: antialiased;
+}
+
+/* iOS Safari zooms the whole page when you focus an input whose font-size is
+   under 16px. The app's inputs are visually smaller than that, so pin the
+   computed size to 16px on touch devices only and let the desktop sizes
+   stand. */
+@media (max-width: 767px) {
+  input,
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+}
+
+/* Grey flash on tap looks broken against the paper palette; the explicit
+   :active states on buttons read better. */
+a,
+button,
+select,
+input {
+  -webkit-tap-highlight-color: transparent;
 }
 
 .tabular {

@@ -55,7 +55,7 @@ export default function AddTransactionModal({ open, onClose }: AddTransactionMod
 
   function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    if (!form.Description || !form.Amount) return;
+    if (!form.Description || !form.Amount || !form.Account.trim()) return;
     const tx: NewTransaction = {
       ...form,
       Amount: Number(form.Amount),
@@ -69,23 +69,30 @@ export default function AddTransactionModal({ open, onClose }: AddTransactionMod
   }
 
   return (
-    <div className="fixed inset-0 bg-ink/40 flex items-center justify-center z-50 px-4">
-      <div className="bg-paper border border-ink rounded max-w-md w-full p-6">
+    // Bottom sheet on phones (reachable, and the keyboard pushes it up
+    // naturally), centered dialog from `sm` up.
+    <div
+      className="fixed inset-0 bg-ink/40 flex items-end sm:items-center justify-center z-50 sm:px-4"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Log an expense"
+    >
+      <div className="bg-paper border border-ink rounded-t-lg sm:rounded max-w-md w-full p-5 sm:p-6 max-h-[92vh] overflow-y-auto pb-[calc(1.25rem+env(safe-area-inset-bottom))] sm:pb-6">
         <div className="flex items-baseline justify-between mb-5">
           <h2 className="font-display text-xl">Log an expense</h2>
-          <button onClick={onClose} className="text-muted hover:text-ink text-sm" aria-label="Close">
+          <button onClick={onClose} className="text-muted hover:text-ink text-sm py-1 px-2 -mr-2" aria-label="Close">
             Close
           </button>
         </div>
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
             <div>
               <label className="block text-xs text-muted mb-1">Date</label>
               <input
                 type="date"
                 value={form.Date}
                 onChange={(e) => update("Date", e.target.value)}
-                className="w-full border border-line rounded px-2 py-1.5 text-sm bg-paper font-mono"
+                className="w-full border border-line rounded px-2 py-2 sm:py-1.5 text-sm bg-paper font-mono"
                 required
               />
             </div>
@@ -95,15 +102,15 @@ export default function AddTransactionModal({ open, onClose }: AddTransactionMod
                 type="time"
                 value={form.Time}
                 onChange={(e) => update("Time", e.target.value)}
-                className="w-full border border-line rounded px-2 py-1.5 text-sm bg-paper font-mono"
+                className="w-full border border-line rounded px-2 py-2 sm:py-1.5 text-sm bg-paper font-mono"
               />
             </div>
-            <div>
+            <div className="col-span-2 sm:col-span-1">
               <label className="block text-xs text-muted mb-1">Type</label>
               <select
                 value={form.Type}
                 onChange={(e) => update("Type", e.target.value as TransactionType)}
-                className="w-full border border-line rounded px-2 py-1.5 text-sm bg-paper"
+                className="w-full border border-line rounded px-2 py-2 sm:py-1.5 text-sm bg-paper"
               >
                 <option value="Debit">Debit (spend)</option>
                 <option value="Credit">Credit (income)</option>
@@ -118,7 +125,7 @@ export default function AddTransactionModal({ open, onClose }: AddTransactionMod
               placeholder="e.g. Grocery at Reliance Fresh"
               value={form.Description}
               onChange={(e) => update("Description", e.target.value)}
-              className="w-full border border-line rounded px-2 py-1.5 text-sm bg-paper"
+              className="w-full border border-line rounded px-2 py-2 sm:py-1.5 text-sm bg-paper"
               required
             />
           </div>
@@ -129,7 +136,7 @@ export default function AddTransactionModal({ open, onClose }: AddTransactionMod
               <select
                 value={form.Category}
                 onChange={(e) => update("Category", e.target.value as Category)}
-                className="w-full border border-line rounded px-2 py-1.5 text-sm bg-paper"
+                className="w-full border border-line rounded px-2 py-2 sm:py-1.5 text-sm bg-paper"
               >
                 {CATEGORY_ORDER.map((c) => (
                   <option key={c} value={c}>
@@ -140,17 +147,30 @@ export default function AddTransactionModal({ open, onClose }: AddTransactionMod
             </div>
             <div>
               <label className="block text-xs text-muted mb-1">Account</label>
-              <select
-                value={form.Account}
-                onChange={(e) => update("Account", e.target.value)}
-                className="w-full border border-line rounded px-2 py-1.5 text-sm bg-paper"
-              >
-                {accounts.map((a) => (
-                  <option key={a} value={a}>
-                    {a}
-                  </option>
-                ))}
-              </select>
+              {/* On a fresh ledger there are no accounts to pick from yet, and
+                  an empty dropdown is a dead end — so type the first one. */}
+              {accounts.length === 0 ? (
+                <input
+                  type="text"
+                  placeholder="e.g. HDFC ...9939"
+                  value={form.Account}
+                  onChange={(e) => update("Account", e.target.value)}
+                  className="w-full border border-line rounded px-2 py-2 sm:py-1.5 text-sm bg-paper"
+                  required
+                />
+              ) : (
+                <select
+                  value={form.Account}
+                  onChange={(e) => update("Account", e.target.value)}
+                  className="w-full border border-line rounded px-2 py-2 sm:py-1.5 text-sm bg-paper"
+                >
+                  {accounts.map((a) => (
+                    <option key={a} value={a}>
+                      {a}
+                    </option>
+                  ))}
+                </select>
+              )}
             </div>
           </div>
 
@@ -158,19 +178,20 @@ export default function AddTransactionModal({ open, onClose }: AddTransactionMod
             <label className="block text-xs text-muted mb-1">Amount (₹)</label>
             <input
               type="number"
+              inputMode="decimal"
               step="0.01"
               min="0"
               placeholder="0.00"
               value={form.Amount}
               onChange={(e) => update("Amount", e.target.value)}
-              className="w-full border border-line rounded px-2 py-1.5 text-sm bg-paper font-mono"
+              className="w-full border border-line rounded px-2 py-2 sm:py-1.5 text-sm bg-paper font-mono"
               required
             />
           </div>
 
           <button
             type="submit"
-            className="w-full bg-forest text-paper rounded py-2 text-sm mt-2 hover:bg-forestDeep transition-colors"
+            className="w-full bg-forest text-paper rounded py-3 sm:py-2 text-sm mt-2 hover:bg-forestDeep active:bg-forestDeep transition-colors"
           >
             Save entry
           </button>

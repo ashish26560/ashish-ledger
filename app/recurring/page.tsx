@@ -59,20 +59,31 @@ export default function RecurringPage() {
   }
 
   return (
-    <div className="px-10 py-8">
-      <header className="mb-6">
-        <h1 className="font-display text-3xl">Recurring &amp; fixed obligations</h1>
+    <div className="px-4 md:px-10 py-6 md:py-8">
+      <header className="mb-5 md:mb-6">
+        <h1 className="font-display text-2xl md:text-3xl">Recurring &amp; fixed obligations</h1>
         <p className="text-sm text-muted mt-1">
-          EMIs, subscriptions, rent, insurance, and bills — pulled out from everyday spend. Hover a month&apos;s
-          amount for that month&apos;s transactions, or click a row to see everything under that category.
+          EMIs, subscriptions, rent, insurance, and bills — pulled out from everyday spend. Tap a row to
+          see everything under that category; on a larger screen, hovering a month&apos;s amount shows that
+          month&apos;s transactions.
         </p>
       </header>
+
+      {/* The month columns make this table wider than a phone, so it scrolls
+          sideways inside its own box while the category column stays pinned —
+          otherwise you'd scroll away from the labels that give the numbers
+          meaning. */}
+      {months.length > 1 && (
+        <p className="md:hidden text-xs text-muted mb-2">Swipe the table sideways for other months →</p>
+      )}
 
       <div className="border border-line rounded bg-paper overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
             <tr className="ledger-rule-strong text-left text-xs text-muted">
-              <th className="px-4 py-2 font-normal min-w-[220px]">Category</th>
+              <th className="px-4 py-2 font-normal min-w-[180px] md:min-w-[220px] sticky left-0 bg-paper z-10">
+                Category
+              </th>
               {months.map((m) => (
                 <th key={m} className="px-4 py-2 font-normal text-right whitespace-nowrap">
                   {monthLabel(m)}
@@ -88,9 +99,9 @@ export default function RecurringPage() {
                 <Fragment key={row.category}>
                   <tr
                     onClick={() => setExpanded(isOpen ? null : row.category)}
-                    className="cursor-pointer hover:bg-paperDim/60"
+                    className="cursor-pointer hover:bg-paperDim/60 active:bg-paperDim"
                   >
-                    <td className="px-4 py-2">
+                    <td className="px-4 py-3 md:py-2 sticky left-0 bg-paper z-10">
                       <span className="inline-block w-3 text-muted">{isOpen ? "▾" : "▸"}</span> {row.category}
                     </td>
                     {months.map((m) => (
@@ -142,7 +153,7 @@ export default function RecurringPage() {
           </tbody>
           <tfoot>
             <tr className="ledger-rule-strong border-t">
-              <td className="px-4 py-2 font-medium text-rust">Total fixed obligations</td>
+              <td className="px-4 py-2 font-medium text-rust sticky left-0 bg-paper z-10">Total fixed obligations</td>
               {monthTotals.map((v, i) => (
                 <td key={months[i]} className="px-4 py-2 text-right font-mono tabular font-medium text-rust">
                   {formatINR(v)}
