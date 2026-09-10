@@ -29,8 +29,7 @@ interface TransactionRow {
   balance: string | null;
 }
 
-// Shapes a DB row into the same object shape the app has always used
-// (matches data/transactions.json / what localStorage used to hold), so
+// Shapes a DB row into the same object shape the app has always used, so
 // nothing downstream of DataContext needs to know a database exists.
 function rowToTransaction(row: TransactionRow): Transaction {
   return {

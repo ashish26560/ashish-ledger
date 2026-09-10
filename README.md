@@ -77,16 +77,7 @@ here's how to get the database itself running. This is a one-time setup.
    paste the contents of `db/schema.sql` → run it. (Or, if you have `psql`
    installed: `psql "$DATABASE_URL" -f db/schema.sql`.)
 
-4. **Load your existing transaction history in.** This repo's pre-loaded
-   March–September 2026 history and starting balances get migrated across
-   with a one-time script:
-   ```bash
-   npm run db:seed
-   ```
-   It's safe to run more than once — it refuses to re-insert transactions if
-   the table already has rows (balances are always kept up to date though).
-
-5. **Redeploy** (if you'd already deployed before adding the database) so the
+4. **Redeploy** (if you'd already deployed before adding the database) so the
    live site picks up the new `DATABASE_URL`:
    ```bash
    vercel --prod
@@ -143,9 +134,8 @@ file) are sent to your database when you confirm the import.
   no matter which device or browser you open the app from.
 - Everything's on Neon's free tier unless you choose otherwise; keep an eye on usage in
   the Neon console if your transaction volume grows a lot.
-- `npm run db:seed` is meant to run once, right after creating the tables. Running it
-  again is harmless (it won't duplicate your transaction history) but won't do anything
-  further either.
+- The app starts empty. Populate it by uploading a bank statement (Transactions →
+  **Upload statement**) or logging entries by hand.
 
 ## Development
 
