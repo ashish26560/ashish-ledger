@@ -82,3 +82,13 @@ export const putBalanceBodySchema = z.object({
 });
 
 export type PutBalanceInput = z.infer<typeof putBalanceBodySchema>;
+
+// Sign-in / first-user setup. The password floor is deliberately modest —
+// this gate exists to keep strangers out of one person's ledger, and a rule
+// strict enough to be annoying just pushes people toward reuse.
+export const credentialsSchema = z.object({
+  email: z.string().trim().toLowerCase().email("Enter a valid email address."),
+  password: z.string().min(10, "Use at least 10 characters.").max(200),
+});
+
+export type CredentialsInput = z.infer<typeof credentialsSchema>;

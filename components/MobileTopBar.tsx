@@ -2,6 +2,7 @@
 
 import { useLedger } from "@/lib/DataContext";
 import { formatINR } from "@/lib/data";
+import SignOutButton from "@/components/SignOutButton";
 
 // Phones lose the sidebar, and with it the running balance — which is the
 // one number worth seeing from every screen. This puts it back as a compact
@@ -17,13 +18,16 @@ export default function MobileTopBar() {
         <p className="font-display text-lg text-ink leading-none">
           <span className="italic text-sm">Ashish&apos;s</span> Ledger
         </p>
-        <div className="text-right">
-          <p className="text-[10px] text-muted leading-none mb-1">
-            {accounts.length > 0 ? "Available" : "No balances yet"}
-          </p>
-          {accounts.length > 0 && (
-            <p className="font-mono tabular text-sm text-forestDeep leading-none">{formatINR(total)}</p>
-          )}
+        <div className="flex items-center gap-3">
+          <div className="text-right">
+            <p className="text-[10px] text-muted leading-none mb-1">
+              {accounts.length > 0 ? "Available" : "No balances yet"}
+            </p>
+            {accounts.length > 0 && (
+              <p className="font-mono tabular text-sm text-forestDeep leading-none">{formatINR(total)}</p>
+            )}
+          </div>
+          <SignOutButton iconOnly className="text-muted hover:text-ink p-1 -mr-1" />
         </div>
       </div>
     </header>

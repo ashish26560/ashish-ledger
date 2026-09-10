@@ -1,45 +1,61 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { SESSION_COOKIE, verifySessionToken } from "@/lib/auth";
 
-// Every page and API route now reads/writes real financial data from a
-// shared Postgres database instead of each browser's own private
-// localStorage, so — unlike before — anyone who finds the deployed URL
-// could otherwise read or edit it. This gates the whole app behind one
-// shared password (the browser's native Basic Auth prompt) via a
-// SITE_PASSWORD env var. It's intentionally simple: fine for a single
-// person's own data, not a substitute for real per-user accounts.
-export function middleware(request: NextRequest): NextResponse {
-  const password = process.env.SITE_PASSWORD;
-  if (!password) {
-    // Nothing configured — don't lock anyone out (e.g. local dev before
-    // you've set it up), just leave the app open. Set SITE_PASSWORD once
-    // you're ready to protect a real deployment.
-    return NextResponse.next();
+// Reachable without a session, by necessity: the sign-in screen itself, and
+// the endpoints it calls. Everything else — every page, and every data API —
+// requires a valid session cookie.
+const PUBLIC_PATHS = new Set([
+  "/login",
+  "/api/auth/login",
+  "/api/auth/logout",
+  "/api/auth/register",
+  "/api/auth/status",
+]);
+
+function isApiRequest(pathname: string): boolean {
+  return pathname.startsWith("/api/");
+}
+
+export async function middleware(request: NextRequest): Promise<NextResponse> {
+  const { pathname } = request.nextUrl;
+
+  if (PUBLIC_PATHS.has(pathname)) return NextResponse.next();
+
+  // Fail closed. The previous version of this gate let everyone through when
+  // its password variable was unset, which meant a misconfigured deployment
+  // silently published real financial data to the open internet while looking
+  // like it was working. A missing secret is now a hard stop.
+  const secret = process.env.AUTH_SECRET;
+  if (!secret || secret.length < 32) {
+    const message =
+      "AUTH_SECRET is not configured, so this deployment can't verify sign-ins. " +
+      "Generate one with `openssl rand -base64 32` and add it to the project's environment variables.";
+    return isApiRequest(pathname)
+      ? NextResponse.json({ error: message }, { status: 503 })
+      : new NextResponse(message, { status: 503, headers: { "Content-Type": "text/plain; charset=utf-8" } });
   }
 
-  const auth = request.headers.get("authorization") || "";
-  const [scheme, encoded] = auth.split(" ");
-  if (scheme === "Basic" && encoded) {
-    let decoded = "";
-    try {
-      decoded = atob(encoded);
-    } catch {
-      // malformed header, fall through to 401
+  const token = request.cookies.get(SESSION_COOKIE)?.value;
+  const session = token ? await verifySessionToken(token, secret) : null;
+
+  if (!session) {
+    // API callers get a status code they can act on; humans get the sign-in
+    // page, with where they were headed preserved.
+    if (isApiRequest(pathname)) {
+      return NextResponse.json({ error: "Not signed in." }, { status: 401 });
     }
-    const separatorIndex = decoded.indexOf(":");
-    const suppliedPassword = separatorIndex === -1 ? decoded : decoded.slice(separatorIndex + 1);
-    if (suppliedPassword === password) {
-      return NextResponse.next();
-    }
+    const loginUrl = request.nextUrl.clone();
+    loginUrl.pathname = "/login";
+    loginUrl.search = "";
+    if (pathname !== "/") loginUrl.searchParams.set("next", pathname);
+    return NextResponse.redirect(loginUrl);
   }
 
-  return new NextResponse("Authentication required.", {
-    status: 401,
-    headers: { "WWW-Authenticate": 'Basic realm="Ashish\'s Ledger"' },
-  });
+  return NextResponse.next();
 }
 
 export const config = {
-  // Everything except Next's own static/internal assets — pages and API
-  // routes alike need the gate.
+  // Everything except Next's own static output. Pages and API routes alike
+  // need the gate; `_next/static` and `_next/image` hold no ledger data.
   matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"],
 };

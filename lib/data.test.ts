@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { compareDateTime, computeMonthlyNet, formatDateTime, formatINR, uniqueCategories } from "@/lib/data";
+import { compareDateTime, computeMonthlyNet, formatDate, formatDateTime, formatINR, uniqueCategories } from "@/lib/data";
 import type { Transaction } from "@/lib/types";
 
 function transaction(overrides: Partial<Transaction> = {}): Transaction {
@@ -60,8 +60,8 @@ describe("compareDateTime", () => {
 
 describe("formatDateTime", () => {
   it("appends the time only when present", () => {
-    expect(formatDateTime({ Date: "2026-03-01", Time: "" })).toBe("2026-03-01");
-    expect(formatDateTime({ Date: "2026-03-01", Time: "09:30" })).toBe("2026-03-01 09:30");
+    expect(formatDateTime({ Date: "2026-03-01", Time: "" })).toBe("01-Mar-2026");
+    expect(formatDateTime({ Date: "2026-03-01", Time: "09:30" })).toBe("01-Mar-2026 09:30");
   });
 });
 
@@ -94,5 +94,30 @@ describe("uniqueCategories", () => {
     // Grocery comes before Fuel in CATEGORY_ORDER, both come well before
     // Income - Salary — alphabetical order would put Fuel before Grocery.
     expect(uniqueCategories(rows)).toEqual(["Grocery", "Fuel", "Income - Salary"]);
+  });
+});
+
+describe("formatDate", () => {
+  it("renders a stored ISO date as DD-MMM-YYYY", () => {
+    expect(formatDate("2026-09-09")).toBe("09-Sep-2026");
+    expect(formatDate("2026-01-01")).toBe("01-Jan-2026");
+    expect(formatDate("2026-12-31")).toBe("31-Dec-2026");
+  });
+
+  it("keeps the day zero-padded so columns stay aligned", () => {
+    expect(formatDate("2026-03-05")).toBe("05-Mar-2026");
+  });
+
+  it("passes through anything that isn't an ISO date rather than mangling it", () => {
+    expect(formatDate("")).toBe("");
+    expect(formatDate(null)).toBe("");
+    expect(formatDate(undefined)).toBe("");
+    expect(formatDate("09-Sep-2026")).toBe("09-Sep-2026");
+    expect(formatDate("2026-13-01")).toBe("2026-13-01");
+  });
+
+  it("formats the date inside formatDateTime, keeping any time alongside", () => {
+    expect(formatDateTime({ Date: "2026-09-09", Time: "14:32" })).toBe("09-Sep-2026 14:32");
+    expect(formatDateTime({ Date: "2026-09-09", Time: "" })).toBe("09-Sep-2026");
   });
 });

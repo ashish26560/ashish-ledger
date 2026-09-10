@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useLedger } from "@/lib/DataContext";
-import { formatINR, uniqueAccounts } from "@/lib/data";
+import { formatDate, formatINR, uniqueAccounts } from "@/lib/data";
 import ImportStatementModal from "@/components/ImportStatementModal";
 
 interface AccountStats {
@@ -68,7 +68,7 @@ export default function AccountsPage() {
             <div key={account} className="border border-line rounded bg-paper p-4 md:p-5">
               <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 mb-4">
                 <h2 className="font-display text-lg md:text-xl">{account}</h2>
-                <span className="text-xs text-muted">{b ? `as of ${b.asOf}` : "no balance recorded yet"}</span>
+                <span className="text-xs text-muted">{b ? `as of ${formatDate(b.asOf)}` : "no balance recorded yet"}</span>
               </div>
 
               {/* Closing balance is the headline, so it spans the full width

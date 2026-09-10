@@ -2,7 +2,7 @@
 
 import { Fragment, useMemo, useState } from "react";
 import { useLedger } from "@/lib/DataContext";
-import { uniqueMonths, monthLabel, formatINR, formatDateTime, compareDateTime } from "@/lib/data";
+import { uniqueMonths, monthLabel, formatINR, formatDate, formatDateTime, compareDateTime } from "@/lib/data";
 import type { Category } from "@/lib/categories";
 import type { Transaction } from "@/lib/types";
 
@@ -54,7 +54,7 @@ export default function RecurringPage() {
     if (inMonth.length === 0) return undefined;
     return inMonth
       .sort((a, b) => compareDateTime(b, a))
-      .map((t) => `${t.Date}  ${t.Description}  ${formatINR(t.Amount)}`)
+      .map((t) => `${formatDate(t.Date)}  ${t.Description}  ${formatINR(t.Amount)}`)
       .join("\n");
   }
 

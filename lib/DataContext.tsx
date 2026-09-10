@@ -45,6 +45,13 @@ export function DataProvider({ children }: { children: ReactNode }) {
         setTransactions(txData);
         setBalances(balData);
       } catch (err) {
+        // A 401 means the session expired while the tab sat open. Bounce to
+        // sign-in rather than showing a "couldn't load" error the user can do
+        // nothing about.
+        if (err instanceof api.ApiError && err.status === 401) {
+          window.location.href = "/login";
+          return;
+        }
         console.error("Failed to load ledger data:", err);
         if (!cancelled) setLoadError(err instanceof Error ? err.message : "Failed to load ledger data.");
       } finally {

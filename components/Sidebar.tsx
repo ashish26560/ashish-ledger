@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { useLedger } from "@/lib/DataContext";
 import { formatINR } from "@/lib/data";
 import { NAV } from "@/lib/nav";
+import SignOutButton from "@/components/SignOutButton";
 
 // Desktop-only. Phones get MobileTopBar + MobileTabBar instead, so this is
 // hidden below `md` rather than trying to be two layouts at once.
@@ -55,6 +56,8 @@ export default function Sidebar() {
           <span className="text-sm">Total</span>
           <span className="font-mono tabular text-base font-medium text-forestDeep">{formatINR(total)}</span>
         </div>
+
+        <SignOutButton className="mt-4 w-full border border-line rounded py-1.5 text-xs text-muted hover:text-ink hover:bg-line/40 transition-colors" />
       </div>
     </aside>
   );

@@ -78,6 +78,40 @@ export function compareDateTime(a: Pick<Transaction, "Date" | "Time">, b: Pick<T
   return ak < bk ? -1 : ak > bk ? 1 : 0;
 }
 
+const MONTH_ABBREVIATIONS = [
+  "Jan",
+  "Feb",
+  "Mar",
+  "Apr",
+  "May",
+  "Jun",
+  "Jul",
+  "Aug",
+  "Sep",
+  "Oct",
+  "Nov",
+  "Dec",
+] as const;
+
+/**
+ * Renders a stored "YYYY-MM-DD" date as "09-Sep-2026".
+ *
+ * Display only — dates stay ISO everywhere else, because that's what sorts
+ * correctly as a plain string (see compareDateTime), what Postgres stores, and
+ * what `<input type="date">` requires. Anything that isn't an ISO date is
+ * passed through untouched rather than mangled into "Invalid Date".
+ */
+export function formatDate(value: string | null | undefined): string {
+  if (!value) return "";
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+  if (!match) return value;
+
+  const [, year, month, day] = match;
+  const abbreviation = MONTH_ABBREVIATIONS[Number(month) - 1];
+  return abbreviation ? `${day}-${abbreviation}-${year}` : value;
+}
+
 export function formatDateTime(tx: Pick<Transaction, "Date" | "Time">): string {
-  return tx.Time ? `${tx.Date} ${tx.Time}` : tx.Date;
+  const date = formatDate(tx.Date);
+  return tx.Time ? `${date} ${tx.Time}` : date;
 }

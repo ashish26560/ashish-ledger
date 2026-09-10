@@ -3,7 +3,7 @@
 import { useMemo, useState, type ChangeEvent } from "react";
 import { useLedger } from "@/lib/DataContext";
 import Select from "@/components/Select";
-import { CATEGORY_ORDER, formatINR, uniqueAccounts } from "@/lib/data";
+import { CATEGORY_ORDER, formatDate, formatINR, uniqueAccounts } from "@/lib/data";
 import { parseStatementFile } from "@/lib/statementParser";
 import { categorizeAll } from "@/lib/categorize";
 import type { Category } from "@/lib/categories";
@@ -191,13 +191,13 @@ export default function ImportStatementModal({ open, onClose }: ImportStatementM
                         />
                       </td>
                       <td className="px-3 py-1.5 font-mono tabular text-xs text-muted whitespace-nowrap hidden sm:table-cell">
-                        {r.Date}
+                        {formatDate(r.Date)}
                       </td>
                       <td className="px-3 py-2 sm:py-1.5 max-w-[160px] sm:max-w-[220px]" title={r.RawNarration}>
                         <span className="block truncate">{r.Description}</span>
                         {r.duplicate && <span className="text-muted text-xs">already imported</span>}
                         <span className="sm:hidden block font-mono tabular text-[11px] text-muted mt-0.5">
-                          {r.Date}
+                          {formatDate(r.Date)}
                         </span>
                         {/* The category picker has no column of its own on a
                             phone, so it sits with the row it belongs to. */}

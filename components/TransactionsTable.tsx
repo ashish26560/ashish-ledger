@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useLedger } from "@/lib/DataContext";
 import Select from "@/components/Select";
-import { formatINR, CATEGORY_ORDER } from "@/lib/data";
+import { formatDate, formatINR, CATEGORY_ORDER } from "@/lib/data";
 import type { Category } from "@/lib/categories";
 import type { Transaction } from "@/lib/types";
 
@@ -77,7 +77,7 @@ export default function TransactionsTable({ rows }: TransactionsTableProps) {
             })()}
 
             <p className="text-xs text-muted mt-1">
-              {tx.Date}
+              {formatDate(tx.Date)}
               {tx.Time && ` · ${tx.Time}`} · {tx.Account}
             </p>
 
@@ -119,7 +119,7 @@ export default function TransactionsTable({ rows }: TransactionsTableProps) {
               {rows.map((tx) => (
                 <tr key={tx.id} className="hover:bg-paperDim/60">
                   <td className="px-4 py-2 font-mono tabular text-xs text-muted whitespace-nowrap">
-                    {tx.Date}
+                    {formatDate(tx.Date)}
                     {tx.Time && <span className="block text-[10px] opacity-70">{tx.Time}</span>}
                   </td>
                   <td className="px-4 py-2 text-xs text-muted whitespace-nowrap">{tx.Account}</td>

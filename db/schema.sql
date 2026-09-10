@@ -44,3 +44,17 @@ CREATE TABLE IF NOT EXISTS balances (
   balance       NUMERIC(14, 2) NOT NULL,
   as_of         DATE NOT NULL
 );
+
+-- Sign-in accounts. Passwords are stored as PBKDF2-HMAC-SHA256 hashes with a
+-- per-user random salt (see lib/auth.ts) — never in plain text, and never
+-- reversible. Emails are stored lower-cased so sign-in isn't case-sensitive.
+--
+-- The first account is created through the app's own setup screen, which only
+-- works while this table is empty; after that, registration is closed. To add
+-- another person later, insert a row yourself or temporarily clear this table.
+CREATE TABLE IF NOT EXISTS users (
+  id            TEXT PRIMARY KEY,
+  email         TEXT NOT NULL UNIQUE,
+  password_hash TEXT NOT NULL,
+  created_at    TIMESTAMPTZ NOT NULL DEFAULT now()
+);
