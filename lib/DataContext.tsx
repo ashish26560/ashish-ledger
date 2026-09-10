@@ -8,6 +8,8 @@ import type { BalancesByAccount, EditableTransactionFields, NewTransaction, Tran
 export interface LedgerContextValue {
   transactions: Transaction[];
   balances: BalancesByAccount;
+  /** Email of the signed-in user — so the UI can show whose ledger this is. */
+  email: string;
   addTransaction: (tx: NewTransaction) => void;
   addTransactions: (txs: NewTransaction[]) => void;
   isDuplicateTransaction: (tx: Pick<Transaction, "Date" | "Account" | "Type" | "Amount" | "Description">) => boolean;
@@ -33,6 +35,7 @@ function signature(tx: Pick<Transaction, "Date" | "Account" | "Type" | "Amount" 
 export function DataProvider({ children }: { children: ReactNode }) {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [balances, setBalances] = useState<BalancesByAccount>({});
+  const [email, setEmail] = useState("");
   const [loaded, setLoaded] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
 
@@ -40,10 +43,15 @@ export function DataProvider({ children }: { children: ReactNode }) {
     let cancelled = false;
     async function load() {
       try {
-        const [txData, balData] = await Promise.all([api.fetchTransactions(), api.fetchBalances()]);
+        const [txData, balData, me] = await Promise.all([
+          api.fetchTransactions(),
+          api.fetchBalances(),
+          api.fetchCurrentUser(),
+        ]);
         if (cancelled) return;
         setTransactions(txData);
         setBalances(balData);
+        setEmail(me.email);
       } catch (err) {
         // A 401 means the session expired while the tab sat open. Bounce to
         // sign-in rather than showing a "couldn't load" error the user can do
@@ -138,6 +146,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     () => ({
       transactions,
       balances,
+      email,
       addTransaction,
       addTransactions,
       isDuplicateTransaction,
@@ -150,6 +159,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     [
       transactions,
       balances,
+      email,
       addTransaction,
       addTransactions,
       isDuplicateTransaction,

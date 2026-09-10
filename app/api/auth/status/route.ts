@@ -1,22 +1,17 @@
 import { NextResponse } from "next/server";
-import { sql } from "@/lib/db";
-import { apiInternalError } from "@/lib/api-response";
 
 export const dynamic = "force-dynamic";
 
 /**
- * Tells the login screen whether to offer "sign in" or first-run "create your
- * account". Reachable without a session by necessity — it exposes only whether
- * any account exists at all, never who or how many.
+ * Tells the sign-in screen whether to offer a "create an account" option.
+ *
+ * Registration is open only when an invite code is configured. This exposes
+ * that one bit and nothing else — not how many accounts exist, not who they
+ * belong to, and never the code itself.
  */
 export async function GET() {
-  try {
-    const rows = (await sql`SELECT EXISTS (SELECT 1 FROM users) AS has_user`) as { has_user: boolean }[];
-    return NextResponse.json(
-      { needsSetup: !rows[0]?.has_user },
-      { headers: { "Cache-Control": "no-store" } }
-    );
-  } catch (err) {
-    return apiInternalError("GET /api/auth/status", err);
-  }
+  return NextResponse.json(
+    { registrationOpen: Boolean(process.env.SIGNUP_INVITE_CODE) },
+    { headers: { "Cache-Control": "no-store" } }
+  );
 }

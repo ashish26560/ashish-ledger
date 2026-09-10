@@ -92,3 +92,18 @@ export const credentialsSchema = z.object({
 });
 
 export type CredentialsInput = z.infer<typeof credentialsSchema>;
+
+// Registration additionally carries the invite code. It's checked against the
+// server's SIGNUP_INVITE_CODE — this schema only guarantees one was supplied.
+export const registerSchema = credentialsSchema.extend({
+  inviteCode: z.string().min(1, "An invite code is required."),
+});
+
+export type RegisterInput = z.infer<typeof registerSchema>;
+
+export const changePasswordSchema = z.object({
+  currentPassword: z.string().min(1, "Enter your current password."),
+  newPassword: z.string().min(10, "Use at least 10 characters.").max(200),
+});
+
+export type ChangePasswordInput = z.infer<typeof changePasswordSchema>;

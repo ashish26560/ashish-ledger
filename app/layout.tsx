@@ -3,6 +3,7 @@ import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
 import "./globals.css";
 import AppShell from "@/components/AppShell";
+import { APP_NAME } from "@/lib/branding";
 
 const fraunces = Fraunces({
   subsets: ["latin"],
@@ -27,8 +28,8 @@ const plexMono = IBM_Plex_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Ashish's Ledger",
-  description: "Personal expense tracker across HDFC and SBI accounts",
+  title: APP_NAME,
+  description: "Personal expense tracker for your bank accounts",
 };
 
 // `viewportFit: "cover"` lets the layout reach under the notch/home indicator

@@ -58,3 +58,72 @@ CREATE TABLE IF NOT EXISTS users (
   password_hash TEXT NOT NULL,
   created_at    TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
+-- ---------------------------------------------------------------------------
+-- Ownership: tie every transaction and balance to the user it belongs to.
+--
+-- Added after both tables already existed. Until this ran, the ledger was
+-- shared: any signed-in account could read and edit every row, because no
+-- query filtered by user. Harmless while only one account could exist, but
+-- wrong the moment a second one did.
+--
+-- Written to be safe to re-run, and safe on a database that already holds
+-- data: the column is added nullable, existing rows are handed to the oldest
+-- account, and NOT NULL is only enforced once nothing is left unassigned (so
+-- re-running this on a database with rows but no users yet won't fail).
+-- ---------------------------------------------------------------------------
+
+ALTER TABLE transactions ADD COLUMN IF NOT EXISTS user_id TEXT REFERENCES users (id) ON DELETE CASCADE;
+ALTER TABLE balances     ADD COLUMN IF NOT EXISTS user_id TEXT REFERENCES users (id) ON DELETE CASCADE;
+
+UPDATE transactions
+   SET user_id = (SELECT id FROM users ORDER BY created_at, id LIMIT 1)
+ WHERE user_id IS NULL;
+
+UPDATE balances
+   SET user_id = (SELECT id FROM users ORDER BY created_at, id LIMIT 1)
+ WHERE user_id IS NULL;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM transactions WHERE user_id IS NULL) THEN
+    ALTER TABLE transactions ALTER COLUMN user_id SET NOT NULL;
+  END IF;
+
+  IF NOT EXISTS (SELECT 1 FROM balances WHERE user_id IS NULL) THEN
+    ALTER TABLE balances ALTER COLUMN user_id SET NOT NULL;
+  END IF;
+END $$;
+
+-- `balances` was keyed on account alone, which would collide the moment two
+-- people both had an "HDFC ...9939". The key is the pair. Guarded so re-runs
+-- are no-ops once the swap has happened.
+DO $$
+DECLARE
+  primary_key_columns text;
+BEGIN
+  -- A primary key can't include a nullable column, so this has to wait until
+  -- every row has an owner. That's only outstanding when the table already had
+  -- rows before any account existed — in which case, create your account and
+  -- run this file once more to finish the job.
+  IF EXISTS (SELECT 1 FROM balances WHERE user_id IS NULL) THEN
+    RAISE NOTICE 'balances still has rows with no user_id — re-run this file after creating an account.';
+    RETURN;
+  END IF;
+
+  SELECT string_agg(att.attname, ',' ORDER BY key.ord)
+    INTO primary_key_columns
+    FROM pg_constraint con
+    JOIN LATERAL unnest(con.conkey) WITH ORDINALITY AS key(attnum, ord) ON true
+    JOIN pg_attribute att ON att.attrelid = con.conrelid AND att.attnum = key.attnum
+   WHERE con.conrelid = 'balances'::regclass AND con.contype = 'p';
+
+  IF primary_key_columns = 'account' THEN
+    ALTER TABLE balances DROP CONSTRAINT balances_pkey;
+    ALTER TABLE balances ADD PRIMARY KEY (user_id, account);
+  END IF;
+END $$;
+
+-- Every list view now filters by user first, so the useful indexes lead with it.
+CREATE INDEX IF NOT EXISTS idx_transactions_user_date ON transactions (user_id, date, time);
+CREATE INDEX IF NOT EXISTS idx_transactions_user_category ON transactions (user_id, category);

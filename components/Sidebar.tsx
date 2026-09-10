@@ -6,19 +6,20 @@ import { useLedger } from "@/lib/DataContext";
 import { formatINR } from "@/lib/data";
 import { NAV } from "@/lib/nav";
 import SignOutButton from "@/components/SignOutButton";
+import { APP_NAME } from "@/lib/branding";
 
 // Desktop-only. Phones get MobileTopBar + MobileTabBar instead, so this is
 // hidden below `md` rather than trying to be two layouts at once.
 export default function Sidebar() {
   const pathname = usePathname();
-  const { balances } = useLedger();
+  const { balances, email } = useLedger();
   const total = Object.values(balances).reduce((s, b) => s + Number(b.balance || 0), 0);
 
   return (
     <aside className="hidden md:flex w-[260px] shrink-0 border-r border-line bg-paperDim flex-col sticky top-0 h-screen overflow-y-auto">
       <div className="px-6 pt-8 pb-6 ledger-rule-strong">
-        <p className="font-display italic text-lg text-ink leading-none">Ashish&apos;s</p>
-        <p className="font-display text-2xl text-ink leading-tight">Ledger</p>
+        <p className="font-display text-2xl text-ink leading-tight">{APP_NAME}</p>
+        {email && <p className="text-xs text-muted mt-1 truncate">{email}</p>}
       </div>
 
       <nav className="px-3 pt-4">
@@ -57,7 +58,15 @@ export default function Sidebar() {
           <span className="font-mono tabular text-base font-medium text-forestDeep">{formatINR(total)}</span>
         </div>
 
-        <SignOutButton className="mt-4 w-full border border-line rounded py-1.5 text-xs text-muted hover:text-ink hover:bg-line/40 transition-colors" />
+        <div className="mt-4 grid grid-cols-2 gap-2">
+          <Link
+            href="/settings"
+            className="border border-line rounded py-1.5 text-xs text-muted hover:text-ink hover:bg-line/40 transition-colors text-center"
+          >
+            Settings
+          </Link>
+          <SignOutButton className="border border-line rounded py-1.5 text-xs text-muted hover:text-ink hover:bg-line/40 transition-colors" />
+        </div>
       </div>
     </aside>
   );

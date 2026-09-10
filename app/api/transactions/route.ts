@@ -3,6 +3,7 @@ import { randomUUID } from "node:crypto";
 import { sql } from "@/lib/db";
 import { apiInternalError, parseJsonBody } from "@/lib/api-response";
 import { postTransactionsBodySchema } from "@/lib/schemas";
+import { requireSession } from "@/lib/session-server";
 import type { Category } from "@/lib/categories";
 import type { Transaction, TransactionType } from "@/lib/types";
 
@@ -49,10 +50,16 @@ function rowToTransaction(row: TransactionRow): Transaction {
 }
 
 export async function GET() {
+  const { session, error } = await requireSession();
+  if (error) return error;
+
   try {
+    // Scoped to the signed-in user — without this WHERE clause every account
+    // would read the same shared ledger.
     const rows = (await sql`
       SELECT id, date, time, account, description, full_description, category, subcategory, type, amount, balance
       FROM transactions
+      WHERE user_id = ${session.userId}
       ORDER BY date ASC, time ASC NULLS FIRST
     `) as TransactionRow[];
     return NextResponse.json(rows.map(rowToTransaction));
@@ -65,6 +72,9 @@ export async function GET() {
 // expense and a bulk statement-import batch. The caller (DataContext) is
 // responsible for deciding what to send; this just validates and inserts it.
 export async function POST(request: Request) {
+  const { session, error } = await requireSession();
+  if (error) return error;
+
   const parsed = await parseJsonBody(request, postTransactionsBodySchema);
   if (parsed.error) return parsed.error;
 
@@ -73,9 +83,9 @@ export async function POST(request: Request) {
     for (const tx of parsed.data.transactions) {
       const id = randomUUID();
       const rows = (await sql`
-        INSERT INTO transactions (id, date, time, account, description, full_description, category, subcategory, type, amount, balance)
+        INSERT INTO transactions (id, user_id, date, time, account, description, full_description, category, subcategory, type, amount, balance)
         VALUES (
-          ${id}, ${tx.Date}, ${tx.Time || null}, ${tx.Account}, ${tx.Description}, ${tx.FullDescription},
+          ${id}, ${session.userId}, ${tx.Date}, ${tx.Time || null}, ${tx.Account}, ${tx.Description}, ${tx.FullDescription},
           ${tx.Category}, ${tx.Subcategory}, ${tx.Type}, ${tx.Amount}, ${tx.Balance}
         )
         RETURNING id, date, time, account, description, full_description, category, subcategory, type, amount, balance

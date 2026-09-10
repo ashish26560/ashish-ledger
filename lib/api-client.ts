@@ -39,6 +39,10 @@ export function fetchBalances(): Promise<BalancesByAccount> {
   return request<BalancesByAccount>("/api/balances");
 }
 
+export function fetchCurrentUser(): Promise<{ email: string }> {
+  return request<{ email: string }>("/api/auth/me");
+}
+
 export function createTransactions(transactions: NewTransaction[]): Promise<{ inserted: Transaction[] }> {
   return request("/api/transactions", {
     method: "POST",

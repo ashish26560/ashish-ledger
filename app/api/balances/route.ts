@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { sql } from "@/lib/db";
 import { apiInternalError, parseJsonBody } from "@/lib/api-response";
 import { putBalanceBodySchema } from "@/lib/schemas";
+import { requireSession } from "@/lib/session-server";
 import type { AccountBalance, BalancesByAccount } from "@/lib/types";
 
 // GET here takes no request-specific input (no headers/cookies/searchParams),
@@ -19,8 +20,13 @@ interface BalanceRow {
 }
 
 export async function GET() {
+  const { session, error } = await requireSession();
+  if (error) return error;
+
   try {
-    const rows = (await sql`SELECT account, balance, as_of FROM balances`) as BalanceRow[];
+    const rows = (await sql`
+      SELECT account, balance, as_of FROM balances WHERE user_id = ${session.userId}
+    `) as BalanceRow[];
     const balances: BalancesByAccount = {};
     for (const row of rows) {
       const entry: AccountBalance = { balance: Number(row.balance), asOf: row.as_of };
@@ -33,15 +39,18 @@ export async function GET() {
 }
 
 export async function PUT(request: Request) {
+  const { session, error } = await requireSession();
+  if (error) return error;
+
   const parsed = await parseJsonBody(request, putBalanceBodySchema);
   if (parsed.error) return parsed.error;
 
   const { account, balance, asOf } = parsed.data;
   try {
     await sql`
-      INSERT INTO balances (account, balance, as_of)
-      VALUES (${account}, ${balance}, ${asOf})
-      ON CONFLICT (account) DO UPDATE SET balance = EXCLUDED.balance, as_of = EXCLUDED.as_of
+      INSERT INTO balances (user_id, account, balance, as_of)
+      VALUES (${session.userId}, ${account}, ${balance}, ${asOf})
+      ON CONFLICT (user_id, account) DO UPDATE SET balance = EXCLUDED.balance, as_of = EXCLUDED.as_of
     `;
     return NextResponse.json({ ok: true });
   } catch (err) {

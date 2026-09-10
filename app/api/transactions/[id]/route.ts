@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { sql } from "@/lib/db";
-import { apiInternalError, parseJsonBody } from "@/lib/api-response";
+import { apiError, apiInternalError, parseJsonBody } from "@/lib/api-response";
 import { patchTransactionBodySchema, type PatchTransactionInput } from "@/lib/schemas";
+import { requireSession } from "@/lib/session-server";
 
 // The [id] segment already makes this dynamic in practice, but this is
 // explicit belt-and-braces alongside the other two route files — a mutating
@@ -31,14 +32,32 @@ interface RouteContext {
 
 export async function PATCH(request: Request, { params }: RouteContext) {
   const { id } = params;
+  const { session, error } = await requireSession();
+  if (error) return error;
+
   const parsed = await parseJsonBody(request, patchTransactionBodySchema);
   if (parsed.error) return parsed.error;
 
   try {
     const entries = Object.entries(parsed.data) as [keyof PatchTransactionInput, unknown][];
+    let matched = 0;
+
     for (const [field, value] of entries) {
       const column = EDITABLE_FIELDS[field];
-      await sql`UPDATE transactions SET ${sql.unsafe(column)} = ${value} WHERE id = ${id}`;
+      // `AND user_id` is what stops one account editing another's rows: an id
+      // is guessable, ownership isn't.
+      const updated = (await sql`
+        UPDATE transactions SET ${sql.unsafe(column)} = ${value}
+        WHERE id = ${id} AND user_id = ${session.userId}
+        RETURNING id
+      `) as { id: string }[];
+      matched = updated.length;
+    }
+
+    // Same answer whether the row belongs to someone else or doesn't exist —
+    // "forbidden" would confirm that this id is real.
+    if (entries.length > 0 && matched === 0) {
+      return apiError("Transaction not found.", 404);
     }
     return NextResponse.json({ ok: true });
   } catch (err) {
@@ -48,8 +67,15 @@ export async function PATCH(request: Request, { params }: RouteContext) {
 
 export async function DELETE(_request: Request, { params }: RouteContext) {
   const { id } = params;
+  const { session, error } = await requireSession();
+  if (error) return error;
+
   try {
-    await sql`DELETE FROM transactions WHERE id = ${id}`;
+    const deleted = (await sql`
+      DELETE FROM transactions WHERE id = ${id} AND user_id = ${session.userId} RETURNING id
+    `) as { id: string }[];
+
+    if (deleted.length === 0) return apiError("Transaction not found.", 404);
     return NextResponse.json({ ok: true });
   } catch (err) {
     return apiInternalError(`DELETE /api/transactions/${id}`, err);
