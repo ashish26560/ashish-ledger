@@ -26,6 +26,7 @@ function transaction(overrides: Partial<Transaction> = {}): Transaction {
     FullDescription: "",
     Category: "Income - Group Reimbursement",
     Subcategory: "",
+    Pot: "",
     Type: "Credit",
     Amount: 451.44,
     Balance: 190112.68,

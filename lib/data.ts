@@ -3,6 +3,7 @@
 // easy to unit test and safe to call from either a page or a test file.
 
 import { CATEGORY_ORDER, EXCLUDED_FROM_EXPENSE, type Category } from "@/lib/categories";
+import { potAdjustment, splitByPot } from "@/lib/pots";
 import type { Transaction } from "@/lib/types";
 
 export { CATEGORY_ORDER, EXCLUDED_FROM_EXPENSE };
@@ -34,23 +35,56 @@ export function isExpenseRow(tx: Pick<Transaction, "Category">): boolean {
   return !EXCLUDED_FROM_EXPENSE.has(tx.Category);
 }
 
+// Rows in a shared pot are excluded here and re-added as the pot's own cost,
+// so the dashboard agrees with the Monthly page instead of counting the full
+// ₹9,000 dinner you were paid back for. Grouped by month first because a pot
+// is measured within a month — see lib/pots.ts.
 export function computeMonthlyNet(transactions: Transaction[]): Record<string, number> {
   const byMonth: Record<string, number> = {};
-  for (const tx of transactions) {
+  const { loose } = splitByPot(transactions);
+
+  for (const tx of loose) {
     if (!isExpenseRow(tx)) continue;
     const amt = tx.Type === "Debit" ? Number(tx.Amount) : -Number(tx.Amount);
     // Net expense = debits minus credits within expense categories
     byMonth[tx.Month] = (byMonth[tx.Month] || 0) + amt;
   }
+
+  for (const [month, rows] of groupByMonth(transactions)) {
+    for (const [category, cost] of potAdjustment(rows).costByCategory) {
+      if (EXCLUDED_FROM_EXPENSE.has(category as Category)) continue;
+      byMonth[month] = (byMonth[month] || 0) + cost;
+    }
+  }
   return byMonth;
 }
 
-export function computeCategoryTotals(transactions: Transaction[], monthFilter?: string): Record<string, number> {
-  const totals: Record<string, number> = {};
+function groupByMonth(transactions: Transaction[]): Map<string, Transaction[]> {
+  const byMonth = new Map<string, Transaction[]>();
   for (const tx of transactions) {
-    if (monthFilter && tx.Month !== monthFilter) continue;
+    const list = byMonth.get(tx.Month);
+    if (list) list.push(tx);
+    else byMonth.set(tx.Month, [tx]);
+  }
+  return byMonth;
+}
+
+// Same treatment as computeMonthlyNet: a potted payment contributes what the
+// pot cost you, not its face value, and never a negative.
+export function computeCategoryTotals(transactions: Transaction[], monthFilter?: string): Record<string, number> {
+  const scoped = monthFilter ? transactions.filter((t) => t.Month === monthFilter) : transactions;
+  const totals: Record<string, number> = {};
+  const { loose } = splitByPot(scoped);
+
+  for (const tx of loose) {
     if (tx.Type !== "Debit") continue;
     totals[tx.Category] = (totals[tx.Category] || 0) + Number(tx.Amount);
+  }
+
+  for (const [, rows] of groupByMonth(scoped)) {
+    for (const [category, cost] of potAdjustment(rows).costByCategory) {
+      totals[category] = (totals[category] || 0) + cost;
+    }
   }
   return totals;
 }

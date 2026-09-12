@@ -127,3 +127,24 @@ END $$;
 -- Every list view now filters by user first, so the useful indexes lead with it.
 CREATE INDEX IF NOT EXISTS idx_transactions_user_date ON transactions (user_id, date, time);
 CREATE INDEX IF NOT EXISTS idx_transactions_user_category ON transactions (user_id, category);
+
+-- Shared pots -----------------------------------------------------------
+--
+-- Money that passes through the account without being yours: you front a
+-- group dinner and people pay you back, or someone sends you money and you
+-- book the trip with it. Both are the same thing — several transactions that
+-- only make sense read together — so they're linked by a name you type
+-- rather than by any structure the bank gives us.
+--
+-- Deliberately just a label, not a `pots` table with its own id. There is no
+-- pot-level data worth storing yet, and a nullable text column is the change
+-- that can't break the existing rows. When per-person tracking arrives it
+-- becomes a real table and this column becomes the foreign key; nothing
+-- about the transactions themselves has to move.
+ALTER TABLE transactions ADD COLUMN IF NOT EXISTS pot TEXT;
+
+-- Pot rollups scan every row a user has that carries a pot name, so the
+-- partial index keeps it proportional to the pots rather than the ledger.
+CREATE INDEX IF NOT EXISTS idx_transactions_user_pot
+  ON transactions (user_id, pot)
+  WHERE pot IS NOT NULL;

@@ -8,6 +8,11 @@ export interface NavItem {
   href: string;
   label: string;
   icon: string;
+  /**
+   * Label for the mobile tab bar, where five tabs share the screen width and
+   * a long word would wrap or overflow. Falls back to `label`.
+   */
+  shortLabel?: string;
 }
 
 export const NAV: readonly NavItem[] = [
@@ -17,8 +22,14 @@ export const NAV: readonly NavItem[] = [
     icon: "M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h6v6h-6z",
   },
   {
+    href: "/monthly",
+    label: "Monthly",
+    icon: "M4 20V11M9.5 20V5M15 20v-6M20.5 20V8",
+  },
+  {
     href: "/transactions",
     label: "Transactions",
+    shortLabel: "Txns",
     icon: "M4 7h13M14 4l3 3-3 3M20 17H7m3 3-3-3 3-3",
   },
   {

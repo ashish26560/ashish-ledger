@@ -35,6 +35,16 @@ export interface Transaction {
   FullDescription: string;
   Category: Category;
   Subcategory: string;
+  /**
+   * Name of the shared pot this row belongs to, or "" for the ordinary case
+   * of money that is simply yours.
+   *
+   * A pot links transactions that only make sense read together: the ₹9,000
+   * you put on a group dinner and the repayments that follow, or the ₹20,000
+   * someone sent you and the booking you made with it. See lib/pots.ts for
+   * what the app does with them.
+   */
+  Pot: string;
   Type: TransactionType;
   Amount: number;
   Balance: number | "";
@@ -53,6 +63,7 @@ export type EditableTransactionFields = Partial<
     | "FullDescription"
     | "Category"
     | "Subcategory"
+    | "Pot"
     | "Type"
     | "Amount"
     | "Balance"
@@ -102,6 +113,8 @@ export interface CategorizedCandidate extends StatementCandidate {
 export interface ImportRow extends CategorizedCandidate {
   include: boolean;
   duplicate: boolean;
+  /** Pot this row will be imported into — set by accepting a suggestion. */
+  pot: string;
 }
 
 export interface ParsedStatement {

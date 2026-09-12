@@ -19,13 +19,25 @@ export default function AppShell({ children }: { children: ReactNode }) {
 
   return (
     <DataProvider>
-      <div className="flex min-h-screen">
+      {/* On desktop the shell is a fixed-height frame and only the content
+          column scrolls, which is what keeps the sidebar — and the balance
+          block pinned to its bottom — on screen at every scroll position.
+          `position: sticky` can't do this here: globals.css sets
+          `overflow-x: hidden` on html and body, which makes the body a scroll
+          container that never actually scrolls, so a sticky sidebar has
+          nothing to stick to and rides up with the page.
+
+          Phones keep ordinary page scrolling — the sidebar is hidden there,
+          and a fixed-height body fights mobile browser chrome. */}
+      <div className="flex min-h-screen md:h-screen md:overflow-hidden">
         <Sidebar />
-        <div className="flex-1 min-w-0 flex flex-col">
+        <div className="flex-1 min-w-0 md:min-h-0 flex flex-col">
           <MobileTopBar />
           {/* Bottom padding clears the fixed tab bar (h-14) plus the iOS
               home-indicator inset; from `md` up there's no bar to clear. */}
-          <main className="flex-1 min-w-0 pb-[calc(3.5rem+env(safe-area-inset-bottom))] md:pb-0">{children}</main>
+          <main className="flex-1 min-w-0 md:min-h-0 md:overflow-y-auto pb-[calc(3.5rem+env(safe-area-inset-bottom))] md:pb-0">
+            {children}
+          </main>
         </div>
       </div>
       <MobileTabBar />

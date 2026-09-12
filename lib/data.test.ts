@@ -1,5 +1,13 @@
 import { describe, expect, it } from "vitest";
-import { compareDateTime, computeMonthlyNet, formatDate, formatDateTime, formatINR, uniqueCategories } from "@/lib/data";
+import {
+  compareDateTime,
+  computeCategoryTotals,
+  computeMonthlyNet,
+  formatDate,
+  formatDateTime,
+  formatINR,
+  uniqueCategories,
+} from "@/lib/data";
 import type { Transaction } from "@/lib/types";
 
 function transaction(overrides: Partial<Transaction> = {}): Transaction {
@@ -12,6 +20,7 @@ function transaction(overrides: Partial<Transaction> = {}): Transaction {
     FullDescription: "",
     Category: "Other / Personal Transfer",
     Subcategory: "",
+    Pot: "",
     Type: "Debit",
     Amount: 100,
     Balance: 1000,
@@ -119,5 +128,39 @@ describe("formatDate", () => {
   it("formats the date inside formatDateTime, keeping any time alongside", () => {
     expect(formatDateTime({ Date: "2026-09-09", Time: "14:32" })).toBe("09-Sep-2026 14:32");
     expect(formatDateTime({ Date: "2026-09-09", Time: "" })).toBe("09-Sep-2026");
+  });
+});
+
+describe("pot-aware dashboard totals", () => {
+  // Same three rows the Monthly page is tested on, so a divergence between
+  // the two pages shows up as a failure rather than as two different answers
+  // on screen.
+  const dinner = [
+    transaction({ id: "d1", Pot: "Sat dinner", Category: "Food & Dining", Type: "Debit", Amount: 9000 }),
+    transaction({ id: "d2", Pot: "Sat dinner", Category: "Food & Dining", Type: "Credit", Amount: 8000 }),
+    transaction({ id: "g1", Category: "Grocery", Type: "Debit", Amount: 500 }),
+  ];
+
+  it("counts a pot at what it cost you, not at face value", () => {
+    expect(computeMonthlyNet(dinner)["2026-03"]).toBe(1500);
+    expect(computeCategoryTotals(dinner, "2026-03")).toEqual({ "Food & Dining": 1000, Grocery: 500 });
+  });
+
+  it("never turns a pot you came out ahead on into a negative category", () => {
+    const airbnb = [
+      transaction({ id: "a1", Pot: "Airbnb", Category: "Transport", Type: "Credit", Amount: 20000 }),
+      transaction({ id: "a2", Pot: "Airbnb", Category: "Transport", Type: "Debit", Amount: 16000 }),
+    ];
+    expect(computeCategoryTotals(airbnb, "2026-03")).toEqual({});
+    expect(computeMonthlyNet(airbnb)["2026-03"] ?? 0).toBe(0);
+  });
+
+  it("leaves a ledger with no pots exactly as it was", () => {
+    const plain = [
+      transaction({ id: "p1", Category: "Grocery", Type: "Debit", Amount: 500 }),
+      transaction({ id: "p2", Category: "Shopping", Type: "Debit", Amount: 1200 }),
+    ];
+    expect(computeMonthlyNet(plain)["2026-03"]).toBe(1700);
+    expect(computeCategoryTotals(plain)).toEqual({ Grocery: 500, Shopping: 1200 });
   });
 });

@@ -25,6 +25,7 @@ interface TransactionRow {
   full_description: string | null;
   category: string;
   subcategory: string | null;
+  pot: string | null;
   type: string;
   amount: string;
   balance: string | null;
@@ -42,6 +43,7 @@ function rowToTransaction(row: TransactionRow): Transaction {
     FullDescription: row.full_description || "",
     Category: row.category as Category,
     Subcategory: row.subcategory || "",
+    Pot: row.pot || "",
     Type: row.type as TransactionType,
     Amount: Number(row.amount),
     Balance: row.balance == null ? "" : Number(row.balance),
@@ -57,7 +59,7 @@ export async function GET() {
     // Scoped to the signed-in user — without this WHERE clause every account
     // would read the same shared ledger.
     const rows = (await sql`
-      SELECT id, date, time, account, description, full_description, category, subcategory, type, amount, balance
+      SELECT id, date, time, account, description, full_description, category, subcategory, pot, type, amount, balance
       FROM transactions
       WHERE user_id = ${session.userId}
       ORDER BY date ASC, time ASC NULLS FIRST
@@ -83,12 +85,12 @@ export async function POST(request: Request) {
     for (const tx of parsed.data.transactions) {
       const id = randomUUID();
       const rows = (await sql`
-        INSERT INTO transactions (id, user_id, date, time, account, description, full_description, category, subcategory, type, amount, balance)
+        INSERT INTO transactions (id, user_id, date, time, account, description, full_description, category, subcategory, pot, type, amount, balance)
         VALUES (
           ${id}, ${session.userId}, ${tx.Date}, ${tx.Time || null}, ${tx.Account}, ${tx.Description}, ${tx.FullDescription},
-          ${tx.Category}, ${tx.Subcategory}, ${tx.Type}, ${tx.Amount}, ${tx.Balance}
+          ${tx.Category}, ${tx.Subcategory}, ${tx.Pot || null}, ${tx.Type}, ${tx.Amount}, ${tx.Balance}
         )
-        RETURNING id, date, time, account, description, full_description, category, subcategory, type, amount, balance
+        RETURNING id, date, time, account, description, full_description, category, subcategory, pot, type, amount, balance
       `) as TransactionRow[];
       inserted.push(rowToTransaction(rows[0]));
     }

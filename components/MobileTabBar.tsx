@@ -23,7 +23,7 @@ export default function MobileTabBar() {
               <Link
                 href={item.href}
                 aria-current={active ? "page" : undefined}
-                className={`flex flex-col items-center justify-center gap-1 h-14 text-[11px] transition-colors ${
+                className={`flex flex-col items-center justify-center gap-1 h-14 text-[10.5px] whitespace-nowrap transition-colors ${
                   active ? "text-forestDeep" : "text-muted"
                 }`}
               >
@@ -39,7 +39,7 @@ export default function MobileTabBar() {
                 >
                   <path d={item.icon} />
                 </svg>
-                <span className={active ? "font-medium" : undefined}>{item.label}</span>
+                <span className={active ? "font-medium" : undefined}>{item.shortLabel ?? item.label}</span>
               </Link>
             </li>
           );

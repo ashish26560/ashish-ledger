@@ -16,7 +16,10 @@ export default function Sidebar() {
   const total = Object.values(balances).reduce((s, b) => s + Number(b.balance || 0), 0);
 
   return (
-    <aside className="hidden md:flex w-[260px] shrink-0 border-r border-line bg-paperDim flex-col sticky top-0 h-screen overflow-y-auto">
+    // Full height of the shell's fixed frame (see AppShell), so `mt-auto` on
+    // the balance block below pushes it to the bottom of the screen rather
+    // than to the bottom of a column that has scrolled out of view.
+    <aside className="hidden md:flex w-[260px] shrink-0 border-r border-line bg-paperDim flex-col h-full min-h-0 overflow-y-auto">
       <div className="px-6 pt-8 pb-6 ledger-rule-strong">
         <p className="font-display text-2xl text-ink leading-tight">{APP_NAME}</p>
         {email && <p className="text-xs text-muted mt-1 truncate">{email}</p>}

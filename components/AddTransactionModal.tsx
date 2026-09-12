@@ -69,6 +69,7 @@ export default function AddTransactionModal({ open, onClose }: AddTransactionMod
       Amount: Number(form.Amount),
       Balance: "",
       Subcategory: "",
+      Pot: "",
       FullDescription: "",
     };
     addTransaction(tx);

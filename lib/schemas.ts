@@ -32,6 +32,11 @@ const balanceAmount = z
 // runs to, just as a sanity bound on the request body.
 const fullDescription = z.string().trim().max(500).optional().default("");
 
+// A pot name is typed by hand and used as the join key between transactions,
+// so it is trimmed to stop " Goa trip" and "Goa trip" becoming two pots, and
+// bounded because it is a label rather than a note. "" means "not in a pot".
+const potName = z.string().trim().max(80).optional().default("");
+
 export const newTransactionSchema = z.object({
   Date: isoDate,
   Time: timeString.optional().default(""),
@@ -40,6 +45,7 @@ export const newTransactionSchema = z.object({
   FullDescription: fullDescription,
   Category: category.optional().default("Other / Personal Transfer"),
   Subcategory: z.string().trim().optional().default(""),
+  Pot: potName,
   Type: transactionType,
   Amount: z.number().finite().positive("Amount must be a positive number."),
   Balance: balanceAmount,
@@ -64,6 +70,7 @@ export const patchTransactionBodySchema = z
     FullDescription: z.string().trim().max(500),
     Category: category,
     Subcategory: z.string().trim(),
+    Pot: z.string().trim().max(80),
     Type: transactionType,
     Amount: z.number().finite().positive(),
     Balance: balanceAmount,

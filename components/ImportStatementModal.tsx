@@ -6,6 +6,7 @@ import Select from "@/components/Select";
 import { CATEGORY_ORDER, formatDate, formatINR, uniqueAccounts } from "@/lib/data";
 import { parseStatementFile } from "@/lib/statementParser";
 import { categorizeAll } from "@/lib/categorize";
+import { suggestPots, type PotSuggestion } from "@/lib/potSuggestions";
 import type { Category } from "@/lib/categories";
 import type { ImportRow, NewTransaction, ParsedStatement } from "@/lib/types";
 
@@ -28,12 +29,16 @@ export default function ImportStatementModal({ open, onClose }: ImportStatementM
   const [rows, setRows] = useState<ImportRow[]>([]);
   const [updateBalanceOnImport, setUpdateBalanceOnImport] = useState(true);
   const [importedCount, setImportedCount] = useState(0);
+  // Proposed pot pairs, still waiting on a yes or no. Dismissed ones drop out
+  // of this list; accepted ones write a pot name onto both rows.
+  const [suggestions, setSuggestions] = useState<PotSuggestion[]>([]);
 
   function reset() {
     setStage("pick");
     setError("");
     setResult(null);
     setRows([]);
+    setSuggestions([]);
     setImportedCount(0);
   }
 
@@ -59,9 +64,13 @@ export default function ImportStatementModal({ open, onClose }: ImportStatementM
         ...tx,
         include: !isDuplicateTransaction(tx),
         duplicate: isDuplicateTransaction(tx),
+        pot: "",
       }));
       setResult(parsed);
       setRows(withDupes);
+      // Only rows actually being imported can be potted, so duplicates being
+      // skipped shouldn't produce suggestions that can't be acted on.
+      setSuggestions(suggestPots(withDupes.map((r) => (r.include ? r : { ...r, Amount: 0 }))));
       setStage("preview");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Couldn't parse this file.");
@@ -78,15 +87,27 @@ export default function ImportStatementModal({ open, onClose }: ImportStatementM
     setRows((prev) => prev.map((r) => (r.duplicate ? r : { ...r, include })));
   }
 
+  function acceptSuggestion(suggestion: PotSuggestion, name: string) {
+    setRows((prev) =>
+      prev.map((r, i) => (i === suggestion.debitIndex || i === suggestion.creditIndex ? { ...r, pot: name } : r))
+    );
+    dismissSuggestion(suggestion);
+  }
+
+  function dismissSuggestion(suggestion: PotSuggestion) {
+    setSuggestions((prev) => prev.filter((s) => s !== suggestion));
+  }
+
   const toImport = rows.filter((r) => r.include);
   const dupeCount = rows.filter((r) => r.duplicate).length;
   const reviewCount = rows.filter((r) => r.confidence === "fallback" && r.include).length;
 
   function handleImport() {
-    const cleaned: NewTransaction[] = toImport.map(({ RawNarration, include, duplicate, confidence, category, Balance, ...tx }) => ({
+    const cleaned: NewTransaction[] = toImport.map(({ RawNarration, include, duplicate, confidence, category, pot, Balance, ...tx }) => ({
       ...tx,
       Category: category,
       Time: "",
+      Pot: pot,
       Balance: Balance == null ? "" : Balance,
       // The full, untruncated bank narration — kept alongside the cleaned
       // Description so a hover tooltip can show the whole detail later,
@@ -154,6 +175,28 @@ export default function ImportStatementModal({ open, onClose }: ImportStatementM
               {reviewCount > 0 && <span className="text-gold">{reviewCount} categorized as a guess — worth a look</span>}
             </div>
 
+            {suggestions.length > 0 && (
+              <div className="shrink-0 mb-3 border border-gold/50 bg-gold/5 rounded p-3">
+                <p className="text-xs text-muted mb-2">
+                  {suggestions.length === 1 ? "This looks like" : `These ${suggestions.length} look like`} money
+                  passing through rather than your own spending. Potting a pair means only the difference counts
+                  as spent.
+                </p>
+                <div className="space-y-2">
+                  {suggestions.map((suggestion, i) => (
+                    <SuggestionRow
+                      key={`${suggestion.debitIndex}-${suggestion.creditIndex}-${i}`}
+                      suggestion={suggestion}
+                      debit={rows[suggestion.debitIndex]}
+                      credit={rows[suggestion.creditIndex]}
+                      onAccept={(name) => acceptSuggestion(suggestion, name)}
+                      onDismiss={() => dismissSuggestion(suggestion)}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
+
             <div className="flex gap-3 mb-2 shrink-0">
               <button onClick={() => toggleAll(true)} className="text-xs text-forestDeep hover:underline">
                 Select all
@@ -196,6 +239,19 @@ export default function ImportStatementModal({ open, onClose }: ImportStatementM
                       <td className="px-3 py-2 sm:py-1.5 max-w-[160px] sm:max-w-[220px]" title={r.RawNarration}>
                         <span className="block truncate">{r.Description}</span>
                         {r.duplicate && <span className="text-muted text-xs">already imported</span>}
+                        {r.pot && (
+                          <span className="inline-flex items-center gap-1 mt-0.5 text-[10px] font-mono uppercase tracking-wide text-forestDeep border border-forest/40 bg-forest/5 rounded px-1.5 py-0.5">
+                            {r.pot}
+                            <button
+                              type="button"
+                              onClick={() => updateRow(idx, { pot: "" })}
+                              aria-label={`Remove ${r.Description} from the ${r.pot} pot`}
+                              className="text-muted hover:text-rust"
+                            >
+                              ✕
+                            </button>
+                          </span>
+                        )}
                         <span className="sm:hidden block font-mono tabular text-[11px] text-muted mt-0.5">
                           {formatDate(r.Date)}
                         </span>
@@ -281,6 +337,70 @@ export default function ImportStatementModal({ open, onClose }: ImportStatementM
             </div>
           </div>
         )}
+      </div>
+    </div>
+  );
+}
+
+/**
+ * One proposed pair. The name is editable before accepting, because the
+ * payee the bank recorded is a starting point ("Airbnb P") rather than what
+ * you'd call the trip.
+ */
+function SuggestionRow({
+  suggestion,
+  debit,
+  credit,
+  onAccept,
+  onDismiss,
+}: {
+  suggestion: PotSuggestion;
+  debit: ImportRow;
+  credit: ImportRow;
+  onAccept: (name: string) => void;
+  onDismiss: () => void;
+}) {
+  const [name, setName] = useState(suggestion.name);
+
+  return (
+    <div className="border border-line rounded bg-paper px-3 py-2.5 text-xs">
+      <div className="flex flex-wrap gap-x-4 gap-y-1 mb-2">
+        <span className="text-rust font-mono tabular">
+          −{formatINR(debit.Amount)} <span className="text-muted">{debit.Description}</span>
+        </span>
+        <span className="text-forestDeep font-mono tabular">
+          +{formatINR(credit.Amount)} <span className="text-muted">{credit.Description}</span>
+        </span>
+        <span className="text-muted">
+          {suggestion.daysApart === 0 ? "same day" : `${suggestion.daysApart} days apart`}
+        </span>
+      </div>
+      <p className="text-muted mb-2">
+        {suggestion.yourCost > 0
+          ? `Potted, ${formatINR(suggestion.yourCost)} counts as your spending instead of ${formatINR(debit.Amount)}.`
+          : `Potted, none of this counts as your spending — you'd be holding ${formatINR(
+              Number(credit.Amount) - Number(debit.Amount)
+            )} for someone else.`}
+      </p>
+      <div className="flex flex-wrap items-center gap-2">
+        <input
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          aria-label="Pot name"
+          maxLength={80}
+          className="flex-1 min-w-[140px] bg-paper border border-line rounded px-2 py-1"
+        />
+        <button
+          type="button"
+          onClick={() => name.trim() && onAccept(name.trim())}
+          disabled={!name.trim()}
+          className="px-2.5 py-1 rounded bg-ink text-paper disabled:opacity-40"
+        >
+          Pot these
+        </button>
+        <button type="button" onClick={onDismiss} className="px-2 py-1 text-muted hover:text-ink">
+          Not related
+        </button>
       </div>
     </div>
   );

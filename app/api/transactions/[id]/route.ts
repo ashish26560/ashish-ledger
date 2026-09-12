@@ -21,6 +21,7 @@ const EDITABLE_FIELDS: Record<keyof PatchTransactionInput, string> = {
   FullDescription: "full_description",
   Category: "category",
   Subcategory: "subcategory",
+  Pot: "pot",
   Type: "type",
   Amount: "amount",
   Balance: "balance",
@@ -46,8 +47,11 @@ export async function PATCH(request: Request, { params }: RouteContext) {
       const column = EDITABLE_FIELDS[field];
       // `AND user_id` is what stops one account editing another's rows: an id
       // is guessable, ownership isn't.
+      // Clearing a pot has to store NULL, not "": an empty string would be a
+      // real pot name that every cleared row silently joined.
+      const stored = field === "Pot" && value === "" ? null : value;
       const updated = (await sql`
-        UPDATE transactions SET ${sql.unsafe(column)} = ${value}
+        UPDATE transactions SET ${sql.unsafe(column)} = ${stored}
         WHERE id = ${id} AND user_id = ${session.userId}
         RETURNING id
       `) as { id: string }[];
