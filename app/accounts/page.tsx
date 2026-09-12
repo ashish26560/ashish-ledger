@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import { useLedger } from "@/lib/DataContext";
 import { formatDate, formatINR, uniqueAccounts } from "@/lib/data";
 import ImportStatementModal from "@/components/ImportStatementModal";
-
+// test
 interface AccountStats {
   debit: number;
   credit: number;
@@ -32,7 +32,9 @@ export default function AccountsPage() {
   // balance yet (a brand-new database, or one that got cleared) would have
   // no card at all, and no way to enter one for the first time.
   const allAccounts = useMemo(() => {
-    return Array.from(new Set([...uniqueAccounts(transactions), ...Object.keys(balances)])).sort();
+    return Array.from(
+      new Set([...uniqueAccounts(transactions), ...Object.keys(balances)]),
+    ).sort();
   }, [transactions, balances]);
 
   function save(account: string) {
@@ -48,8 +50,8 @@ export default function AccountsPage() {
         <div>
           <h1 className="font-display text-2xl md:text-3xl">Accounts</h1>
           <p className="text-sm text-muted mt-1">
-            Closing balances update automatically only when you tell them to — upload a statement
-            below, or enter the latest figure by hand.
+            Closing balances update automatically only when you tell them to —
+            upload a statement below, or enter the latest figure by hand.
           </p>
         </div>
         <button
@@ -63,12 +65,23 @@ export default function AccountsPage() {
       <div className="space-y-4 md:space-y-6">
         {allAccounts.map((account) => {
           const b = balances[account];
-          const stats: AccountStats = perAccount[account] || { debit: 0, credit: 0, count: 0 };
+          const stats: AccountStats = perAccount[account] || {
+            debit: 0,
+            credit: 0,
+            count: 0,
+          };
           return (
-            <div key={account} className="border border-line rounded bg-paper p-4 md:p-5">
+            <div
+              key={account}
+              className="border border-line rounded bg-paper p-4 md:p-5"
+            >
               <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 mb-4">
                 <h2 className="font-display text-lg md:text-xl">{account}</h2>
-                <span className="text-xs text-muted">{b ? `as of ${formatDate(b.asOf)}` : "no balance recorded yet"}</span>
+                <span className="text-xs text-muted">
+                  {b
+                    ? `as of ${formatDate(b.asOf)}`
+                    : "no balance recorded yet"}
+                </span>
               </div>
 
               {/* Closing balance is the headline, so it spans the full width
@@ -82,11 +95,15 @@ export default function AccountsPage() {
                 </div>
                 <div>
                   <p className="text-xs text-muted mb-1">Total debits</p>
-                  <p className="font-mono tabular text-lg md:text-xl text-rust break-all">{formatINR(stats.debit)}</p>
+                  <p className="font-mono tabular text-lg md:text-xl text-rust break-all">
+                    {formatINR(stats.debit)}
+                  </p>
                 </div>
                 <div>
                   <p className="text-xs text-muted mb-1">Total credits</p>
-                  <p className="font-mono tabular text-lg md:text-xl break-all">{formatINR(stats.credit)}</p>
+                  <p className="font-mono tabular text-lg md:text-xl break-all">
+                    {formatINR(stats.credit)}
+                  </p>
                 </div>
               </div>
 
@@ -97,7 +114,9 @@ export default function AccountsPage() {
                   step="0.01"
                   placeholder="Update balance..."
                   value={edits[account] ?? ""}
-                  onChange={(e) => setEdits((s) => ({ ...s, [account]: e.target.value }))}
+                  onChange={(e) =>
+                    setEdits((s) => ({ ...s, [account]: e.target.value }))
+                  }
                   aria-label={`New balance for ${account}`}
                   className="border border-line rounded px-2 py-2 md:py-1.5 text-sm font-mono flex-1 min-w-0 bg-paper"
                 />
@@ -115,14 +134,17 @@ export default function AccountsPage() {
         {allAccounts.length === 0 && (
           <div className="border border-dashed border-line rounded px-4 py-10 text-center">
             <p className="text-sm text-muted">
-              No accounts yet. Upload a bank statement or log an expense, and the account it belongs
-              to will appear here.
+              No accounts yet. Upload a bank statement or log an expense, and
+              the account it belongs to will appear here.
             </p>
           </div>
         )}
       </div>
 
-      <ImportStatementModal open={importOpen} onClose={() => setImportOpen(false)} />
+      <ImportStatementModal
+        open={importOpen}
+        onClose={() => setImportOpen(false)}
+      />
     </div>
   );
 }
