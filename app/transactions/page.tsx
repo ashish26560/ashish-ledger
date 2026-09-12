@@ -63,10 +63,40 @@ export default function TransactionsPage() {
   const pageStart = (page - 1) * pageSize;
   const paginated = filtered.slice(pageStart, pageStart + pageSize);
 
+  // Every row counts towards the total until you untick it. Held as the set of
+  // rows LEFT OUT rather than the ones included, so "all ticked" is the empty
+  // set and nothing has to be re-ticked when a filter brings new rows in.
+  const [excluded, setExcluded] = useState<Set<string>>(new Set());
+
+  const excludedHere = filtered.filter((t) => excluded.has(t.id)).length;
+
   const total = filtered.reduce((s, t) => {
+    if (excluded.has(t.id)) return s;
     const amt = Number(t.Amount) || 0;
     return s + (t.Type === "Credit" ? amt : -amt);
   }, 0);
+
+  function toggleRow(id: string) {
+    setExcluded((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  // Scoped to what's on screen: "untick all" on a filtered view shouldn't
+  // silently drop rows you can't see.
+  function setAllOnPage(include: boolean) {
+    setExcluded((prev) => {
+      const next = new Set(prev);
+      for (const t of paginated) {
+        if (include) next.delete(t.id);
+        else next.add(t.id);
+      }
+      return next;
+    });
+  }
 
   const monthOptions = useMemo(
     () => [{ value: ALL, label: "All months" }, ...months.map((m) => ({ value: m, label: monthLabel(m) }))],
@@ -92,7 +122,10 @@ export default function TransactionsPage() {
       <header className="flex flex-col sm:flex-row sm:items-baseline sm:justify-between gap-3 mb-5 md:mb-6">
         <div>
           <h1 className="font-display text-2xl md:text-3xl">Transactions</h1>
-          <p className="text-sm text-muted mt-1">{filtered.length} entries</p>
+          <p className="text-sm text-muted mt-1">
+            {filtered.length} entries
+            {excludedHere > 0 && <span className="text-rust"> · {excludedHere} left out of the total</span>}
+          </p>
         </div>
         <div className="grid grid-cols-2 sm:flex gap-2">
           <button
@@ -144,17 +177,32 @@ export default function TransactionsPage() {
         />
       </div>
 
-      <TransactionsTable rows={paginated} />
+      <TransactionsTable
+        rows={paginated}
+        excluded={excluded}
+        onToggleRow={toggleRow}
+        onSetAllOnPage={setAllOnPage}
+      />
 
       {/* On phones the filtered total gets its own full-width row above the
           pager — it's the number worth reading, and it would otherwise be
           crushed against the Next button. */}
       <div className="flex items-baseline justify-between gap-3 mt-4 md:hidden border-t border-line pt-3">
-        <span className="text-sm text-muted">Total (filtered)</span>
+        <span className="text-sm text-muted">
+          {excludedHere > 0 ? "Total (ticked rows)" : "Total (filtered)"}
+        </span>
         <span className={`font-mono tabular text-lg ${total < 0 ? "text-rust" : "text-forestDeep"}`}>
           {formatINR(total, { signed: true })}
         </span>
       </div>
+      {excludedHere > 0 && (
+        <button
+          onClick={() => setExcluded(new Set())}
+          className="md:hidden mt-2 text-xs text-forestDeep hover:underline"
+        >
+          Put everything back in
+        </button>
+      )}
 
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mt-3 md:pr-2">
         <div className="flex items-center justify-between md:justify-start gap-2 md:gap-3">
@@ -197,7 +245,14 @@ export default function TransactionsPage() {
           </label>
 
           <div className="hidden md:flex items-baseline gap-3">
-            <span className="text-sm text-muted">Total (filtered)</span>
+            {excludedHere > 0 && (
+              <button onClick={() => setExcluded(new Set())} className="text-xs text-forestDeep hover:underline">
+                Put everything back in
+              </button>
+            )}
+            <span className="text-sm text-muted">
+              {excludedHere > 0 ? "Total (ticked rows)" : "Total (filtered)"}
+            </span>
             <span className={`font-mono tabular text-lg ${total < 0 ? "text-rust" : "text-forestDeep"}`}>
               {formatINR(total, { signed: true })}
             </span>
